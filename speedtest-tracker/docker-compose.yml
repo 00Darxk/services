@@ -1,0 +1,66 @@
+services:
+  speedtest-tracker:
+    image: lscr.io/linuxserver/speedtest-tracker:latest
+    hostname: speedtest-tracker
+    restart: unless-stopped
+    container_name: speedtest-tracker
+#   ports:
+#    - 8080:80
+#    - 8443:443
+    environment:
+     - PUID=1000
+     - PGID=1000
+     - APP_KEY=${API_KEY}
+     - APP_URL=
+     - APP_NAME=Speedtest
+     - ADMIN_NAME=${ADMIN_NAME:-admin}
+     - ADMIN_EMAIL=${ADMIN_EMAIL}
+     - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+     - SPEEDTEST_SCHEDULE=0 */1 * * *
+     - APP_TIMEZONE=Europe/Rome
+     - DISPLAY_TIMEZONE=Europe/Rome
+     - PRUNE_RESULTS_OLDER_THAN=7
+     - DB_CONNECTION=sqlite
+    volumes:
+     - ${PWD}/data:/config
+#    - /path/to-custom-ssl-keys:/config/keys
+#   network_mode: service:tailscale-speedtest-tracker
+    networks:
+     - speedtest-internal
+
+  tailscale-speedtest-tracker:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-speedtest-tracker
+    environment:
+      - TS_AUTHKEY=${TS_KEY_SPEEDTEST_TRACKER}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/speedtest-tracker.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=alpirmigiano-speedtest-tracker
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-speedtest-tracker/state:/var/lib/tailscale
+      - ${PWD}/tailscale-speedtest-tracker/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    # network_mode: host
+    networks:
+      - speedtest-internal
+      - speedtest-bridge
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+
+networks:
+  speedtest-internal:
+    internal: true
+  speedtest-bridge:
+    driver: bridge

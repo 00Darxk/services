@@ -35,7 +35,7 @@ services:
       - MYSQL_HOST=db
     networks:
       - nextcloud-internal
-    hostname: nextcloud-internal
+    hostname: nextcloud
     container_name: nextcloud-app
 
  tailscale-nextcloud:

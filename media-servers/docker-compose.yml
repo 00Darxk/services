@@ -1,0 +1,695 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin
+    container_name: jellyfin
+    # hostname: jellyfin.internal
+    # Optional - specify the uid and gid you would like Jellyfin to use instead of root
+    # user: uid:gid
+    # ports:
+    #   - 8096:8096/tcp
+    #   - 7359:7359/udp
+    volumes:
+      - ./jellyfin/config:/config
+      - ./jellyfin/cache:/cache
+      - type: bind
+        source: ./data/media
+        target: /data/media
+      - type: bind
+        source: ./data/media2
+        target: /data/media2
+        read_only: true
+      # Optional - extra fonts to be used during transcoding with subtitle burn-in
+      - type: bind
+        source: ./jellyfin/fonts
+        target: /usr/local/share/fonts/custom
+        read_only: true
+    restart: 'unless-stopped'
+    # Optional - alternative address used for autodiscovery
+    # environment:
+    #   - JELLYFIN_PublishedServerUrl=http://example.com
+    # Optional - may be necessary for docker healthcheck to pass if running in host network mode
+    # extra_hosts:
+    #   - 'host.docker.internal:host-gateway'
+    #
+    network_mode: service:tailscale-jellyfin
+    # networks:
+    #   - jellyfin-internal
+    depends_on:
+      tailscale-jellyfin:
+        condition: service_healthy
+      seerr:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "jellyfin"] # Check if ${SERVICE} process is running
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 30s # Time to wait before starting health checks
+
+  tailscale-jellyfin:
+    container_name: tailscale-jellyfin
+    image: tailscale/tailscale:latest
+    restart: unless-stopped
+    environment:
+      - TS_AUTHKEY=${TS_KEY_JELLYFIN}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/jellyfin.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=jellyfin
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41231       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-jellyfin/state:/var/lib/tailscale
+      - ${PWD}/tailscale-jellyfin/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    # network_mode: host
+    networks:
+      - jellyfin-to-seerr
+      - bazarr-to-jellyfin
+      - jellyfin-bridge
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41231/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+
+
+
+  tailscale-seerr:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-seerr
+    environment:
+      - TS_AUTHKEY=${TS_KEY_SEERR}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/seerr.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=seerr
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41237       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-seerr/state:/var/lib/tailscale
+      - ${PWD}/tailscale-seerr/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    networks:
+      - jellyfin-to-seerr
+      - seerr-to-starr
+      - seerr-bridge
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41237/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    # hostname: seerr.internal
+    network_mode: service:tailscale-seerr
+    container_name: seerr
+    environment:
+      - LOG_LEVEL=debug
+      - TZ=Europe/Rome
+      - PORT=5055 #optional
+    # ports:
+    #   - 5055:5055
+    depends_on:
+      tailscale-seerr:
+        condition: service_healthy
+      sonarr:
+        condition: service_healthy
+      radarr: 
+        condition: service_healthy
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./seerr/appdata/config:/app/config
+    restart: unless-stopped
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1 # Check if ${SERVICE} process is running
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+
+
+  tailscale-sonarr:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-sonarr
+    environment:
+      - TS_AUTHKEY=${TS_KEY_SONARR}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/sonarr.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=sonarr
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41236       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-sonarr/state:/var/lib/tailscale
+      - ${PWD}/tailscale-sonarr/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    networks:
+      - starr-internal
+      - seerr-to-starr
+      - starr-to-clients
+      - sonarr-bridge
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41236/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+
+  sonarr:
+    container_name: sonarr
+    # hostname: sonarr.internal
+    image: ghcr.io/hotio/sonarr
+    restart: unless-stopped
+    logging:
+      driver: json-file
+    network_mode: service:tailscale-sonarr
+    # networks:
+    #  - seerr-to-starr
+    #  - starr-to-clients
+    #  - sonarr-internal
+    depends_on:
+      tailscale-sonarr:
+        condition: service_healthy
+      prowlarr:
+        condition: service_healthy
+      qbittorrent:
+        condition: service_healthy
+    # ports:
+    #   - "8989:8989"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=Europe/Rome
+      - WEBUI_PORTS=8989/tcp 
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./sonarr/appdata/config:/config
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "sonarr"] # Check if ${SERVICE} process is running
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+
+
+  tailscale-radarr:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-radarr
+    environment:
+      - TS_AUTHKEY=${TS_KEY_RADARR}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/radarr.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=radarr
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41238       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-radarr/state:/var/lib/tailscale
+      - ${PWD}/tailscale-radarr/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    networks:
+      - starr-internal
+      - seerr-to-starr
+      - starr-to-clients
+      - radarr-bridge
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41238/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+
+  radarr:
+    container_name: radarr
+    # hostname: radarr.internal
+    image: ghcr.io/hotio/radarr
+    restart: unless-stopped
+    logging:
+      driver: json-file
+    network_mode: service:tailscale-radarr
+    # networks:
+    #   - seerr-to-starr
+    #   - starr-to-clients
+    #   - radarr-internal
+    depends_on:
+      tailscale-radarr:
+        condition: service_healthy
+      prowlarr:
+        condition: service_healthy
+      qbittorrent:
+        condition: service_healthy
+    # ports:
+    #   - "8989:8989"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=Europe/Rome
+      - WEBUI_PORTS=7878/tcp 
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./radarr/appdata/config:/config
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "radarr"] # Check if ${SERVICE} process is running
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+
+
+  tailscale-bazarr:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-bazarr
+    environment:
+      - TS_AUTHKEY=${TS_KEY_BAZARR}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/bazarr.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=bazarr
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41239       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-bazarr/state:/var/lib/tailscale
+      - ${PWD}/tailscale-bazarr/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    networks:
+      - starr-internal
+      - bazarr-to-jellyfin
+      - bazarr-bridge
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41239/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+
+  bazarr:
+    container_name: bazarr
+    # hostname: bazarr.internal
+    image: ghcr.io/hotio/bazarr
+    restart: unless-stopped
+    logging:
+      driver: json-file
+    network_mode: service:tailscale-bazarr
+    # networks:
+    #  - bazarr-internal
+    # links:
+    #   - sonarr:sonarr.internal
+    #   - radarr:radarr.internal
+    depends_on:
+      tailscale-bazarr:
+        condition: service_healthy
+      sonarr:
+        condition: service_healthy
+      radarr:
+        condition: service_healthy
+    # ports:
+    #   - "6767:6767"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=Europe/Rome
+      - WEBUI_PORTS=6767/tcp 
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./bazarr/appdata/config:/config
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "bazarr"] # Check if ${SERVICE} process is running
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+
+
+  tailscale-qbittorrent:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-qbittorrent
+    environment:
+      - TS_AUTHKEY=${TS_KEY_QBITTORRENT}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/qbittorrent.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=qbittorrent
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-qbittorrent/state:/var/lib/tailscale
+      - ${PWD}/tailscale-qbittorrent/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    networks:
+      - starr-to-clients
+      - qbittorrent-bridge
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+
+  qbittorrent:
+    container_name: qbittorrent
+    image: ghcr.io/hotio/qbittorrent
+    # hostname: qbittorrent.internal
+    # ports:
+    #  - 18081:18081
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=Europe/Rome
+      - WEBUI_PORTS=8080/tcp 
+      - LIBTORRENT=v1
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./qbittorrent/appdata/config:/config
+      - ./data/torrents:/data/torrents
+    network_mode: service:tailscale-qbittorrent
+    # networks:
+    #   - starr-to-clients
+    #   - qbittorrent-internal
+    depends_on:
+      tailscale-qbittorrent:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "qbittorrent"] # Check if ${SERVICE} process is running
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 30s # Time to wait before starting health checks
+    restart: unless-stopped
+
+
+  tailscale-kavita:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-kavita
+    environment:
+      - TS_AUTHKEY=${TS_KEY_KAVITA}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/kavita.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=kavita
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-kavita/state:/var/lib/tailscale
+      - ${PWD}/tailscale-kavita/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    networks:
+      - kavita-to-starr
+      - kavita-bridge
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+
+  kavita:
+    image: lscr.io/linuxserver/kavita:latest
+    container_name: kavita
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=Europe/Rome
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./kavita/appdata/config:/config
+      - ./data/media/manga:/data/media/manga #optional
+    # ports:
+    #  - 5000:5000
+    network_mode: service:tailscale-kavita
+    depends_on:
+      tailscale-kavita:
+        condition: service_healthy
+      mylar3:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "kavita"] # Check if ${SERVICE} process is running
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks 
+    restart: unless-stopped
+
+
+  tailscale-mylar3:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-mylar3
+    environment:
+      - TS_AUTHKEY=${TS_KEY_MYLAR3}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/mylar3.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=mylar3
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-mylar3/state:/var/lib/tailscale
+      - ${PWD}/tailscale-mylar3/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    networks:
+      - kavita-to-starr
+      - starr-to-clients
+      - mylar3-bridge
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+
+  mylar3:
+    image: lscr.io/linuxserver/mylar3:latest
+    container_name: mylar3
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=Europe/Rome
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./mylar3/appdata/config:/config
+      - ./data/media/manga:/data/media/manga
+    # ports:
+    #   - 8090:8090
+    network_mode: service:tailscale-mylar3
+    depends_on:
+      tailscale-mylar3:
+        condition: service_healthy
+      prowlarr:
+        condition: service_healthy
+      qbittorrent:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "mylar3"] # Check if ${SERVICE} process is running
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks 
+    restart: unless-stopped
+
+
+  tailscale-prowlarr:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-prowlarr
+    environment:
+      - TS_AUTHKEY=${TS_KEY_PROWLARR}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/prowlarr.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=prowlarr
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-prowlarr/state:/var/lib/tailscale
+      - ${PWD}/tailscale-prowlarr/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    networks:
+      - starr-internal
+      - starr-to-clients
+      - prowlarr-bridge
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+
+  prowlarr:
+    container_name: prowlarr
+    image: ghcr.io/hotio/prowlarr
+    # ports:
+    #  - "9696:9696"
+    network_mode: service:tailscale-prowlarr
+    depends_on:
+      tailscale-prowlarr:
+        condition: service_healthy
+      byparr:
+        condition: service_healthy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=Europe/Rome
+      - WEBUI_PORTS=9696/tcp
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./prowlarr/appdata/config:/config
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "prowlarr"] # Check if ${SERVICE} process is running
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks 
+    restart: unless-stopped
+
+
+  tailscale-byparr:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-byparr
+    environment:
+      - TS_AUTHKEY=${TS_KEY_BYPARR}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/byparr.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=byparr
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-byparr/state:/var/lib/tailscale
+      - ${PWD}/tailscale-byparr/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    networks:
+      - starr-internal
+      - byparr-bridge
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+
+  byparr:
+    image: ghcr.io/thephaseless/byparr:latest
+    container_name: byparr
+    deploy:
+      resources:
+        limits:
+          memory: 2048m
+    network_mode: service:tailscale-byparr
+    depends_on:
+      tailscale-byparr:
+        condition: service_healthy
+    # networks:
+    #   - starr-internal
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=Europe/Rome
+      - WEBUI_PORTS=8191/tcp
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    healthcheck:
+      test: ["CMD", "curl", "http://localhost:8191/health"] # Check if ${SERVICE} process is running
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks 
+    restart: unless-stopped
+
+
+networks:
+  jellyfin-to-seerr:
+    internal: true
+  bazarr-to-jellyfin:
+    internal: true
+  seerr-to-starr:
+    internal: true
+  starr-to-clients:
+    internal: true
+  starr-internal:
+    internal: true
+
+  jellyfin-bridge:
+    driver: bridge
+  seerr-bridge:
+    driver: bridge
+  sonarr-bridge:
+    driver: bridge
+  radarr-bridge:
+    driver: bridge
+  bazarr-bridge:
+    driver: bridge
+  qbittorrent-bridge:
+    driver: bridge
+  prowlarr-bridge:
+    driver: bridge
+  byparr-bridge:
+    driver: bridge
+
+  kavita-to-starr:
+    internal: true
+  kavita-bridge:
+    driver: bridge
+  mylar3-bridge:
+    driver: bridge

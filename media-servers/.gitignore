@@ -1,0 +1,13 @@
+# Services data
+bazarr/
+jellyfin/
+kavita/
+mylar3/
+prowlarr/
+qbittorrent/
+radarr/
+seerr/
+sonarr/
+
+# Data directory
+data/

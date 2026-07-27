@@ -1,0 +1,12 @@
+# PiHole data
+etc-pihole/
+etc-dnmasq.d/
+
+# Unbound data
+!etc-unbound/
+etc-unbound/*
+!etc-unbound/unbound.conf*
+
+# WireGuard conf for unbound
+wg-conf/
+unbound/wg_confs/

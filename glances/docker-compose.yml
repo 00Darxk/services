@@ -1,0 +1,15 @@
+services:
+  monitoring:
+    image: nicolargo/glances:latest-full
+    container_name: glances
+    pid: host
+    network_mode: host
+    privileged: true
+    ports:
+      - 61209:61209
+      - 61208:61208
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - "GLANCES_OPT=-w"
+    restart: always

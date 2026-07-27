@@ -1,0 +1,101 @@
+#version: '4.2'
+
+services:
+  minecraft-server-fabric:
+    container_name: 'minecraft-server-fabric-cobblemon'
+    image: itzg/minecraft-server
+    tty: true
+    stdin_open: true
+    ports:
+      - 25565:25565
+      - 25575:25575
+      - 22585:8080
+    environment:
+      EULA: "TRUE"
+      TYPE: FABRIC
+      VERSION: "1.21.1"
+      MODRINTH_PROJECTS: |
+        fabric-api
+        craterlib
+        cobblemon
+        cobbreeding
+        lithium
+        krypton
+        threadtweak
+        tt20
+        cloth-config
+        carpet
+        luckperms
+        trinkets
+        cobblefurnies
+        owo-lib
+        slumber
+        recipecooldown
+        scalablelux
+        squaremap
+        chunky
+        easyauth
+        noisium
+        squaremap-banner
+      MODS: |
+        https://cdn.modrinth.com/data/Sh0YauEf/versions/Mjtluzo1/SimpleDiscordLink-Universal-3.4.2.jar
+        https://cdn.modrinth.com/data/kkmrDlKT/versions/XNtIBXyQ/TerraBlender-fabric-1.21.1-4.1.0.8.jar
+        https://cdn.modrinth.com/data/vEC2jm6I/versions/PhDCt4Jt/async-fabric-0.2.0%2Balpha-1.21.1.jar
+        https://cdn.modrinth.com/data/b1ZV3DIJ/versions/JfyYsWKP/athena-fabric-1.21.1-4.0.6.jar
+        https://cdn.modrinth.com/data/uCdwusMi/versions/oYXIfeus/DistantHorizons-3.0.3-b-1.21.1-fabric-neoforge.jar
+        https://cdn.modrinth.com/data/gG7VFbG0/versions/7TrBCyBl/TAB%20v5.5.0%201.20.5%20-%201.21.1.jar
+        https://cdn.modrinth.com/data/u6dRKJwZ/versions/TvqzuFwN/jei-1.21.1-fabric-19.27.0.340.jar
+        https://cdn.modrinth.com/data/G1hIVOrD/versions/Hf91FuVF/resourcefullib-fabric-1.21-3.0.12.jar
+        https://cdn.modrinth.com/data/jtmvUHXj/versions/Xlt4eWBe/accessories-fabric-1.1.0-beta.53%2B1.21.1.jar
+        https://cdn.modrinth.com/data/VSNURh3q/versions/DSqOVCaF/c2me-fabric-mc1.21.1-0.3.0%2Balpha.0.362.jar
+        # https://cdn.modrinth.com/data/ySnjMzLg/versions/OkGF8Kho/accessories_compat_layer-fabric-0.1.10%2B1.21.1.jar
+        https://cdn.modrinth.com/data/lhGA9TYQ/versions/Wto0RchG/architectury-13.0.8-fabric.jar
+        https://cdn.modrinth.com/data/SszvX85I/versions/7UIW15Xn/mega_showdown-fabric-1.8.4%2B1.7.3%2B1.21.1-hotfix-hotfix.jar
+        https://cdn.modrinth.com/data/uXXizFIs/versions/sOzRw3CG/ferritecore-7.0.3-fabric.jar
+        https://cdn.modrinth.com/data/m6RyHSbV/versions/kSVEEVIv/LegendaryMonuments-7.8.jar
+        https://cdn.modrinth.com/data/vNZgQmjg/versions/INfCT8FF/immersive_optimization-fabric-1.21-0.1.5.jar
+      PLUGINS: |
+        # https://cdn.modrinth.com/data/PFb7ZqK6/versions/RerxbGKf/squaremap-fabric-mc1.21.1-1.3.2.jar
+        # https://cdn.modrinth.com/data/gG7VFbG0/versions/8RDeWRUJ/TAB%20v5.2.1%201.20.5%20-%201.21.1.jar
+      DATAPACKS: |
+        https://cdn.modrinth.com/data/zQj6JND7/versions/To85jryI/Last%20Death%20Location%20-%202.0.1.zip
+        https://cdn.modrinth.com/data/QhIm7FFU/versions/1E4k6X12/stackable_shulker_boxes-1.2.0.zip
+      COPY_MODS_SRC: ./mods
+      INIT_MEMORY: '10G'
+      MAX_MEMORY: '10G'
+      ONLINE_MODE: "FALSE"
+      RCON_ENABLE: "TRUE"
+      RCON_PASSWORD: ${RCON_PASSWORD}
+      JVM_DD_OPTS: 'user.timezone="Europe/Rome"'
+      DIFFICULTY: "hard"
+    restart: on-failure:3
+    volumes:
+      - ./data:/data
+      - ./mods:/data/mods
+      - ./plugins:/data/plugins
+  restore-backup:
+    # Same image as mc, but any base image with bash and tar will work
+    image: itzg/mc-backup
+    container_name: minecraft-server-restore-backup
+    restart: "no"
+    entrypoint: restore-tar-backup
+    volumes:
+      # Must be same mount as mc service, needs to be writable
+      - ./data:/data
+      # Must be same mount as backups service, but can be read-only
+      - ./backups:/backups:ro
+  backups:
+    image: itzg/mc-backup
+    container_name: minecraft-server-backups
+    depends_on:
+      minecraft-server-fabric:
+        condition: service_healthy
+    environment:
+      BACKUP_INTERVAL: "36h"
+      RCON_HOST: minecraft-server-fabric
+      RCON_PASSWORD: ${RCON_PASSWORD}
+      # since this service waits for mc to be healthy, no initial delay is needed
+      INITIAL_DELAY: 0
+    volumes:
+      - ./data:/data:ro
+      - ./backups:/backups

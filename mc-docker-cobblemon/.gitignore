@@ -1,0 +1,8 @@
+# Config backups
+*.bak
+
+# Data 
+data/
+backups/
+mods/
+plugins/

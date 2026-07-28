@@ -164,6 +164,12 @@ services:
     depends_on:
       tailscale-2fauth:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8000"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
 
   tailscale-2fauth:
     image: tailscale/tailscale:latest

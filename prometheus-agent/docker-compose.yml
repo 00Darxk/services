@@ -11,10 +11,21 @@ services:
       # - ${IP}:9095:9095
     links: 
       - node_exporter
+    depends_on:
+      node_exporter:
+        condition: service_healthy
     volumes: 
       - ${PWD}/prometheus/config/prometheus.yml:/prometheus/prometheus.yml
       - ${PWD}/prometheus/config:/etc/prometheus
       - ${PWD}/prometheus/data:/prometheus
+    healthcheck:
+      test: ["CMD", "wget", "http://localhost:9090"]
+      interval: 10s
+      timeout: 15s
+      retries: 10
+      start_period: 40s 
+
+
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
@@ -37,4 +48,9 @@ services:
     cap_add:
       - SYS_TIME
     #network_mode: service:prometheus-agent
-
+    healthcheck:
+      test: ["CMD", "wget", "http://localhost:9100"]
+      interval: 10s
+      timeout: 15s
+      retries: 10
+      start_period: 40s 

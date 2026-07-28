@@ -9,8 +9,8 @@ services:
     environment:
      - PUID=1000
      - PGID=1000
-     - APP_KEY=${API_KEY}
-     - APP_URL=
+     - APP_KEY=${APP_KEY}
+     - APP_URL=${APP_URL}
      - APP_NAME=Speedtest
      - ADMIN_NAME=${ADMIN_NAME:-admin}
      - ADMIN_EMAIL=${ADMIN_EMAIL}

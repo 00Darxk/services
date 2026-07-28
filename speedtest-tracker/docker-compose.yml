@@ -36,7 +36,7 @@ services:
       - TS_EXTRA_ARGS=--advertise-tags=tag:container
       - TS_SERVE_CONFIG=/config/speedtest-tracker.json
       - TS_STATE_DIR=/var/lib/tailscale
-      - TS_HOSTNAME=alpirmigiano-speedtest-tracker
+      - TS_HOSTNAME=${TS_HOSTNAME}
       - TS_USERSPACE=false
       - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
       - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint

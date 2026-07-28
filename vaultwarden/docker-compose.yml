@@ -1,0 +1,41 @@
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    depends_on:
+      tailscale-vaultwarden:
+        condition: service_healthy
+    network_mode: service:tailscale-vaultwarden
+    volumes:
+      - '/opt/vaultwarden/bwdata/:/data/'
+    restart: unless-stopped
+
+
+  tailscale-vaultwarden:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-vaultwarden
+    environment:
+      - TS_AUTHKEY=${TS_KEY_VAULTWARDEN}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/vaultwarden.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=vaultwarden
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - /opt/vaultwarden/tailscale-vaultwarden/state:/var/lib/tailscale
+      - /opt/vaultwarden/tailscale-vaultwarden/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    # networks:
+    #  - ...
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped

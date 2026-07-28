@@ -4,3 +4,9 @@
 [submodule "ctfbox"]
 	path = ctfbox
 	url = https://github.com/TheRomanXpl0it/ctfbox.git
+[submodule "discord-telegram-simple-relay"]
+	path = discord-telegram-simple-relay
+	url = https://github.com/framp/discord-telegram-simple-relay.git
+[submodule "docker-dashboard"]
+	path = docker-dashboard
+	url = https://github.com/rakibtg/docker-web-gui.git

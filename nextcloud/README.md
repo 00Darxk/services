@@ -1,1 +1,1 @@
-deprecated, will prolly update in the future
+need to bind `/data:/var/www/html/data` with media servers change

@@ -8,7 +8,7 @@
     "${TS_CERT_DOMAIN}:443": {
       "Handlers": {
         "/": {
-          "Proxy": "http://nextcloud:8080"
+          "Proxy": "http://localhost:80" 
         }
       }
     }

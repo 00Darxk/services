@@ -10,3 +10,6 @@
 [submodule "docker-dashboard"]
 	path = docker-dashboard
 	url = https://github.com/rakibtg/docker-web-gui.git
+[submodule "wazuh-docker"]
+	path = wazuh-docker
+	url = https://github.com/wazuh/wazuh-docker.git

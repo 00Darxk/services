@@ -1,0 +1,52 @@
+services:
+  upsnap:
+    container_name: upsnap
+    image: ghcr.io/seriousm4x/upsnap:5 # images are also available on docker hub: seriousm4x/upsnap:5
+    restart: unless-stopped
+    volumes:
+      - ${PWD}/data:/app/pb_data
+      - ${PWD}/keys:/root/.ssh:ro
+    environment:
+      - TZ=Europe/Rome # Set container timezone for cron schedules
+    #   - UPSNAP_INTERVAL=*/10 * * * * * # Sets the interval in which the devices are pinged
+    #   - UPSNAP_SCAN_RANGE=192.168.1.0/24 # Scan range is used for device discovery on local network
+    #   - UPSNAP_SCAN_TIMEOUT=500ms # Scan timeout is nmap's --host-timeout value to wait for devices (https://nmap.org/book/man-performance.html)
+      - UPSNAP_PING_PRIVILEGED=true # Set to false if you don't have root user permissions
+      - UPSNAP_WEBSITE_TITLE=caseificio # Custom website title
+    healthcheck:
+       test: curl -fs "http://localhost:8090/api/health" || exit 1
+       interval: 10s
+    network_mode: service:tailscale-upsnap
+    depends_on:
+      tailscale-upsnap:
+        condition: service_healthy
+
+  tailscale-upsnap:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-upsnap
+    environment:
+      - TS_AUTHKEY=${TS_KEY_UPSNAP}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/upsnap.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=upsnap
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-upsnap/state:/var/lib/tailscale
+      - ${PWD}/tailscale-upsnap/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    network_mode: host
+    # networks:
+    #  - ...
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped

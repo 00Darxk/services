@@ -35,7 +35,7 @@ scrape_configs:
 
   - job_name: "prometheus-agent"
     static_configs:
-      - targets: ["archeddar:9090"]
+      - targets: ["__archeddar__:9090"]
         labels:
           app: "prometheus"
           mode: "agent"
@@ -53,7 +53,7 @@ scrape_configs:
   - job_name: "node_exporter-archeddar"
     static_configs:
       # can't use node_exporter, doesn't fine host
-      - targets: ["archeddar:9100"]
+      - targets: ["__archeddar__:9100"]
         labels:
           host: "archeddar"
           app: "node_exporter"

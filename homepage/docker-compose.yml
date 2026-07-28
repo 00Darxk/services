@@ -13,7 +13,7 @@ services:
       HOMEPAGE_ALLOWED_HOSTS: ${TS_HOST} # required, may need port. See gethomepage.dev/installation/#homepage_allowed_hosts
     network_mode: service:tailscale-homepage
     healthcheck:
-      test: ["CMD", "wget", "http://localhost:3000"] # Check Tailscale has a Tailnet IP and is operational
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"] # Check Tailscale has a Tailnet IP and is operational
       interval: 1m # How often to perform the check
       timeout: 10s # Time to wait for the check to succeed
       retries: 3 # Number of retries before marking as unhealthy
@@ -32,7 +32,7 @@ services:
       - TS_HOSTNAME=homepage
       # - TS_USERSPACE=false
       - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
-      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41235       # The <addr>:<port> for the healthz endpoint
     volumes:
       - ${PWD}/tailscale-homepage/state:/var/lib/tailscale
       - ${PWD}/tailscale-homepage/config:/config
@@ -44,7 +44,7 @@ services:
     # networks:
     #  - ...
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41235/healthz"] # Check Tailscale has a Tailnet IP and is operational
       interval: 1m # How often to perform the check
       timeout: 10s # Time to wait for the check to succeed
       retries: 3 # Number of retries before marking as unhealthy

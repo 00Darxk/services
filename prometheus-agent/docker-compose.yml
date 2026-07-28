@@ -19,7 +19,7 @@ services:
       - ${PWD}/prometheus/config:/etc/prometheus
       - ${PWD}/prometheus/data:/prometheus
     healthcheck:
-      test: ["CMD", "wget", "http://localhost:9090"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090"]
       interval: 10s
       timeout: 15s
       retries: 10
@@ -49,7 +49,7 @@ services:
       - SYS_TIME
     #network_mode: service:prometheus-agent
     healthcheck:
-      test: ["CMD", "wget", "http://localhost:9100"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9100"]
       interval: 10s
       timeout: 15s
       retries: 10

@@ -17,22 +17,3 @@
     "${TS_CERT_DOMAIN}:443": false
   }
 }
-{
-  "TCP": {
-    "443": {
-      "HTTPS": true
-    }
-  },
-  "Web": {
-    "${TS_CERT_DOMAIN}:443": {
-      "Handlers": {
-        "/": {
-          "Proxy": "http://localhost:9090"
-        }
-      }
-    }
-  },
-  "AllowFunnel": {
-    "${TS_CERT_DOMAIN}:443": false
-  }
-}

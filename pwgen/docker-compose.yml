@@ -1,0 +1,73 @@
+services:
+  pwgen:
+    image: jocxfin/pwgen:latest
+    container_name: pwgen
+    network_mode: service:tailscale-pwgen
+    depends_on:
+      tailscale-pwgen:
+        condition: service_healthy
+#    ports:
+#      - 5069:5069
+    restart: unless-stopped
+    environment:
+      - NO_API_CHECK=false 
+      - PW_LENGTH=24
+      - PW_INCLUDE_UPPERCASE=true 
+      - PW_INCLUDE_DIGITS=true 
+      - PW_INCLUDE_SPECIAL=true 
+      - PW_EXCLUDE_HOMOGLYPHS=true 
+      - PP_WORD_COUNT=4 
+      - PP_CAPITALIZE=false 
+      - PP_SEPARATOR_TYPE=dash 
+      - PP_USER_DEFINED_SEPARATOR= 
+      - PP_MAX_WORD_LENGTH=12 
+      - PP_INCLUDE_NUMBERS=false 
+      - PP_INCLUDE_SPECIAL_CHARS=false 
+      - PP_LANGUAGE=en 
+      - PP_HIDE_LANG=false 
+      - PP_LANGUAGE_CUSTOM='' 
+      - MULTI_GEN=true 
+      - GENERATE_PP=false
+      - SHOW_SAVE_SETTINGS=true 
+      - ROBOTS_ALLOW=false 
+      - GOOGLE_SITE_VERIFICATION= 
+      - DISABLE_URL_CHECK=false 
+      - BASE_PATH=
+#     - PP_LOCAL_WORDLIST=/app/custom_wordlist.txt 
+#    volumes: 
+#      - A:\german.txt:/app/custom_wordlist.txt
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:5069"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+  
+
+  tailscale-pwgen: 
+    image: tailscale/tailscale:latest
+    container_name: tailscale-pwgen
+    environment:
+      - TS_AUTHKEY=${TS_KEY_PWGEN}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/pwgen.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=pwgen
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-pwgen/state:/var/lib/tailscale
+      - ${PWD}/tailscale-pwgen/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    # network_mode: host
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped

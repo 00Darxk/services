@@ -2,7 +2,6 @@ services:
   speedtest-tracker:
     image: lscr.io/linuxserver/speedtest-tracker:latest
     hostname: speedtest-tracker
-    restart: unless-stopped
     container_name: speedtest-tracker
 #   ports:
 #    - 8080:80
@@ -27,6 +26,16 @@ services:
 #   network_mode: service:tailscale-speedtest-tracker
     networks:
      - speedtest-internal
+    depends_on:
+      tailscale-speedtest-tracker:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:80"]
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
 
   tailscale-speedtest-tracker:
     image: tailscale/tailscale:latest

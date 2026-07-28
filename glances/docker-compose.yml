@@ -12,4 +12,10 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - "GLANCES_OPT=-w"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:61208"]      
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
     restart: always

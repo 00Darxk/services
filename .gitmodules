@@ -1,0 +1,3 @@
+[submodule "docker-discord-alerts"]
+	path = docker-discord-alerts
+	url = https://github.com/teddy-vltn/docker-discord-alerts.git

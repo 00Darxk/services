@@ -59,7 +59,7 @@ services:
       - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
       - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
     volumes:
-      - ${PWD}/nextcloud/tailscale-nextcloud/state:/var/lib/tailscale
+      - ${PWD}/tailscale-nextcloud/state:/var/lib/tailscale
       - ${PWD}/tailscale-nextcloud/config:/config
     devices:
       - /dev/net/tun:/dev/net/tun

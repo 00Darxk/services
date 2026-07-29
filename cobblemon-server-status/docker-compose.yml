@@ -1,0 +1,42 @@
+services:
+  tailscale-cobblemon-status:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-cobblemon-status
+    environment:
+      - TS_AUTHKEY=${TS_KEY_COBBLEMON_STATUS}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/cobblemon-status.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=cobblemon-status
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-cobblemon-status/state:/var/lib/tailscale
+      - ${PWD}/tailscale-cobblemon-status/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    # networks:
+    #  - ...
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    container_name: uptime-kuma-cobblemon
+    restart: unless-stopped
+    volumes: 
+      - ${PWD}/data:/app/data
+    # ports:
+    #  - 3002:3001
+    network_mode: service:tailscale-cobblemon-status
+    depends_on:
+      tailscale-cobblemon-status:
+        condition: service_healthy

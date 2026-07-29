@@ -1,0 +1,47 @@
+services:
+  actual-budget:
+    image: actualbudget/actual-server:latest
+    container_name: actual-budget
+    volumes:
+      - ${PWD}/data:/data
+    network_mode: service:tailscale-actual-budget
+    depends_on:
+      tailscale-actual-budget:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5006"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+
+
+  tailscale-actual-budget:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-actual-budget
+    environment:
+      - TS_AUTHKEY=${TS_KEY_ACTUAL_BUDGET}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/actual-budget.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=actual-budget
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-actual-budget/state:/var/lib/tailscale
+      - ${PWD}/tailscale-actual-budget/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    # networks:
+    #  - ...
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped

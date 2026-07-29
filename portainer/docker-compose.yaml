@@ -1,0 +1,52 @@
+services:
+  tailscale-portainer:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-portainer
+    environment:
+      - TS_AUTHKEY=${TS_KEY_PORTAINER}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/portainer.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=portainer
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-portainer/state:/var/lib/tailscale
+      - ${PWD}/tailscale-portainer/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    # networks:
+    #  - ...
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+
+
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ee:lts
+    restart: always
+    depends_on:
+      tailscale-portainer:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+#    ports:
+#      - 9443:9443
+#      - 9000:8000  # Remove if you do not intend to use Edge Agents
+    network_mode: service:tailscale-portainer
+
+volumes:
+  portainer_data:
+    name: portainer_data
+networks:
+  default:
+    name: portainer_network

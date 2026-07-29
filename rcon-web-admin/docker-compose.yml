@@ -1,0 +1,62 @@
+services:
+  tailscale-rcon-web-admin:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-rcon-web-admin
+    environment:
+      - TS_AUTHKEY=${TS_KEY_RWA}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/rcon-web-admin.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=rcon-web-admin
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-rcon-web-admin/state:/var/lib/tailscale
+      - ${PWD}/tailscale-rcon-web-admin/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    # networks:
+    #  - ...
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+
+  rcon-web-admin:
+    image: itzg/rcon:latest
+    # hostname: rcon-web-admin
+    container_name: rcon-web-admin
+    environment:
+      - RWA_ENV=TRUE
+      - RWA_USERNAME=${RWA_USERNAME:-admin}
+      - RWA_PASSWORD=${RWA_PASSWORD}
+      - RWA_ADMIN=TRUE
+      - RWA_RCON_HOST=${RWA_RCON_HOST}
+      - RWA_GAME=minecraft
+      - RWA_SERVER_NAME=cobblemon
+      - RWA_RCON_PASSWORD=${RWA_RCON_PASSWORD}
+      - RWA_WEBSOCKET_URL_SSL=${RWA_WEBSOCKET_URL_SSL}
+#    ports:
+#      - "4326:4326"
+#      - "4327:4327"
+    volumes: 
+      - ${PWD}/opt/rcon-web-admin/db:/opt/rcon-web-admin/db
+    restart: unless-stopped
+    network_mode: service:tailscale-rcon-web-admin
+    depends_on:
+      tailscale-rcon-web-admin:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:4326"]
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+

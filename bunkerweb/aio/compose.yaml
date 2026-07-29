@@ -1,0 +1,28 @@
+services:
+  bunkerweb:
+    image: bunkerity/bunkerweb:1.6.5
+    ports:
+      - "80:8080/tcp"
+      - "443:8443/tcp"
+      - "443:8443/udp"
+    environment:
+      SERVER_NAME: "www.example.com"
+      MULTISITE: "yes"
+      DISABLE_DEFAULT_SERVER: "yes"
+      USE_REVERSE_PROXY: "yes"
+      REVERSE_PROXY_URL: "/api-test"
+      REVERSE_PROXY_HOST: "http://bunkerweb-aio:8888"
+
+  bunkerweb-aio:
+    image: bunkerity/bunkerweb-all-in-one:1.6.5
+    environment:
+      SERVICE_API: "yes"
+      API_WHITELIST_IPS: "127.0.0.0/8 10.20.30.0/24"
+      # Optionally set an admin override token
+      # API_TOKEN: "changeme"
+    networks:
+      - bw-universe
+
+networks:
+  bw-universe:
+    name: bw-universe

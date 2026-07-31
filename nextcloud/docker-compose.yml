@@ -46,6 +46,31 @@ services:
       retries: 3 # Number of retries before marking as unhealthy
       start_period: 10s # Time to wait before starting health checks
 
+  appapi-harp:
+    image: ghcr.io/nextcloud/nextcloud-appapi-harp:release
+    container_name: appapi-harp
+    hostname: appapi-harp.internal
+    # ports:
+    #  - 127.0.0.1:8780:8780
+    #  - 127.0.0.1:8782:8782
+    environment:
+      - HP_SHARED_KEY="${HP_SHARED_KEY}"
+      - NC_INSTANCE_URL="https://${TS_CERT_DOMAIN}"
+      - HP_TRUSTED_PROXY_IPS="100.64.0.0/10" # "${TS_IP}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${PWD}/harp/appdata/certs:/certs
+    # network_mode: service:tailscale-nextcloud
+    depends_on:
+      # tailscale-nextcloud:
+      #   condition: service_healthy
+      app:
+        condition: service_healthy
+    networks:
+    #   - nextcloud-internal
+      - nextcloud-bridge
+    restart: unless-stopped
+
   tailscale-nextcloud:
     image: tailscale/tailscale:latest
     container_name: tailscale-nextcloud

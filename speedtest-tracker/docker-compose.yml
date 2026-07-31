@@ -23,7 +23,7 @@ services:
      - ${PWD}/data:/config
      - ${PWD}/tailscale-speedtest-tracker/state/certs/${TS_CERT_DOMAIN}.crt:/config/keys/cert.crt:ro
      - ${PWD}/tailscale-speedtest-tracker/state/certs/${TS_CERT_DOMAIN}.key:/config/keys/cert.key:ro
-    network_mode: service:tailscale-speedtest-tracke    
+    network_mode: service:tailscale-speedtest-tracker
     depends_on:
       tailscale-speedtest-tracker:
         condition: service_healthy

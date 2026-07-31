@@ -1,7 +1,6 @@
 services:
   speedtest-tracker:
     image: lscr.io/linuxserver/speedtest-tracker:latest
-    hostname: speedtest-tracker
     container_name: speedtest-tracker
 #   ports:
 #    - 8080:80
@@ -22,10 +21,9 @@ services:
      - DB_CONNECTION=sqlite
     volumes:
      - ${PWD}/data:/config
-#    - /path/to-custom-ssl-keys:/config/keys
-#   network_mode: service:tailscale-speedtest-tracker
-    networks:
-     - speedtest-internal
+     - ${PWD}/tailscale-speedtest-tracker/state/certs/${TS_CERT_DOMAIN}.crt:/config/keys/cert.crt:ro
+     - ${PWD}/tailscale-speedtest-tracker/state/certs/${TS_CERT_DOMAIN}.key:/config/keys/cert.key:ro
+    network_mode: service:tailscale-speedtest-tracke    
     depends_on:
       tailscale-speedtest-tracker:
         condition: service_healthy
@@ -43,7 +41,7 @@ services:
     environment:
       - TS_AUTHKEY=${TS_KEY_SPEEDTEST_TRACKER}
       - TS_EXTRA_ARGS=--advertise-tags=tag:container
-      - TS_SERVE_CONFIG=/config/speedtest-tracker.json
+      # - TS_SERVE_CONFIG=/config/speedtest-tracker.json
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_HOSTNAME=${TS_HOSTNAME}
       - TS_USERSPACE=false
@@ -56,10 +54,6 @@ services:
       - /dev/net/tun:/dev/net/tun
     cap_add:
       - net_admin
-    # network_mode: host
-    networks:
-      - speedtest-internal
-      - speedtest-bridge
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
       interval: 1m # How often to perform the check
@@ -68,8 +62,3 @@ services:
       start_period: 10s # Time to wait before starting health checks
     restart: unless-stopped
 
-networks:
-  speedtest-internal:
-    internal: true
-  speedtest-bridge:
-    driver: bridge

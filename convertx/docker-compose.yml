@@ -1,0 +1,49 @@
+services:
+  tailscale-convertx:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-convertx
+    environment:
+      - TS_AUTHKEY=${TS_KEY_CONVERTX}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/convertx.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=convertx
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-convertx/state:/var/lib/tailscale
+      - ${PWD}/tailscale-convertx/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    # networks:
+    #  - ...
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+
+  convertx:
+    image: ghcr.io/c4illin/convertx
+    container_name: convertx
+    restart: unless-stopped
+    # ports:
+    #  - "3000:3000"
+    network_mode: service:tailscale-convertx
+    environment:
+      - JWT_SECRET=${JWT_SECRET} # will use randomUUID() if unset
+      # - HTTP_ALLOWED=true # uncomment this if accessing it over a non-https connection
+    volumes:
+      - ${PWD}/convertx/appdata:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000"]
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+

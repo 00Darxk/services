@@ -8,6 +8,7 @@ qbittorrent/
 radarr/
 seerr/
 sonarr/
+flaresolverr/
 
 # Data directory
 data/

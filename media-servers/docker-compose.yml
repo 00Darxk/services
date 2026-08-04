@@ -578,7 +578,7 @@ services:
     depends_on:
       tailscale-prowlarr:
         condition: service_healthy
-      byparr:
+      flaresolverr:
         condition: service_healthy
     environment:
       - PUID=1000
@@ -598,28 +598,28 @@ services:
     restart: unless-stopped
 
 
-  tailscale-byparr:
+  tailscale-flaresolverr:
     image: tailscale/tailscale:latest
-    container_name: tailscale-byparr
+    container_name: tailscale-flaresolverr
     environment:
-      - TS_AUTHKEY=${TS_KEY_BYPARR}
+      - TS_AUTHKEY=${TS_KEY_FLARESOLVERR}
       - TS_EXTRA_ARGS=--advertise-tags=tag:container
-      - TS_SERVE_CONFIG=/config/byparr.json
+      # - TS_SERVE_CONFIG=/config/flaresolverr.json
       - TS_STATE_DIR=/var/lib/tailscale
-      - TS_HOSTNAME=byparr
+      - TS_HOSTNAME=flaresolverr
       - TS_USERSPACE=false
       - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
       - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
     volumes:
-      - ${PWD}/tailscale-byparr/state:/var/lib/tailscale
-      - ${PWD}/tailscale-byparr/config:/config
+      - ${PWD}/tailscale-flaresolverr/state:/var/lib/tailscale
+      - ${PWD}/tailscale-flaresolverr/config:/config
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add:
       - net_admin
     networks:
       - starr-internal
-      - byparr-bridge
+      - flaresolverr-bridge
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
       interval: 1m # How often to perform the check
@@ -628,16 +628,12 @@ services:
       start_period: 10s # Time to wait before starting health checks
     restart: unless-stopped
 
-  byparr:
-    image: ghcr.io/thephaseless/byparr:latest
-    container_name: byparr
-    deploy:
-      resources:
-        limits:
-          memory: 2048m
-    network_mode: service:tailscale-byparr
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    network_mode: service:tailscale-flaresolverr
     depends_on:
-      tailscale-byparr:
+      tailscale-flaresolverr:
         condition: service_healthy
     # networks:
     #   - starr-internal
@@ -646,11 +642,15 @@ services:
       - PGID=1000
       - UMASK=002
       - TZ=Europe/Rome
-      - WEBUI_PORTS=8191/tcp
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FILE=${LOG_FILE:-none}
+      - LOG_HTML=${LOG_HTML:-false}
+      - CAPTCHA_SOLVER=${CAPTCHA_SOLVER:-none}
     volumes:
+      - ${PWD}/flaresolverr/appdata/config:/config
       - /etc/localtime:/etc/localtime:ro
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8191/health"] # Check if ${SERVICE} process is running
+      test: ["CMD", "curl", "-fs", "http://localhost:8191"] # Check if ${SERVICE} process is running
       interval: 1m # How often to perform the check
       timeout: 10s # Time to wait for the check to succeed
       retries: 3 # Number of retries before marking as unhealthy
@@ -684,7 +684,7 @@ networks:
     driver: bridge
   prowlarr-bridge:
     driver: bridge
-  byparr-bridge:
+  flaresolverr-bridge:
     driver: bridge
 
   kavita-to-starr:

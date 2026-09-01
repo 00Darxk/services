@@ -1,0 +1,53 @@
+services:
+  stirling-pdf:
+    image: docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest-fat
+    container_name: stirling-pdf
+    # ports:
+    #   - '8080:8080'
+    network_mode: service:tailscale-stirling
+    depends_on:
+      tailscale-stirling:
+        condition: service_healthy
+    volumes:
+      - ${PWD}/stirling-data/tessdata:/usr/share/tessdata  # OCR language files
+      - ${PWD}/stirling-data/configs:/configs               # Settings & database
+      - ${PWD}/stirling-data/logs:/logs                     # Application logs
+      - ${PWD}/stirling-data/pipeline:/pipeline             # Automation configs    
+    environment:
+      - SYSTEM_DEFAULTLOCALE=en-GB      # Default interface language
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080"]
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks 
+    restart: unless-stopped
+
+  tailscale-stirling:
+    image: tailscale/tailscale:v1.102.3
+    container_name: tailscale-stirling
+    environment:
+      - TS_AUTHKEY=${TS_KEY_STIRLING}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/stirling.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=stirling
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-stirling/state:/var/lib/tailscale
+      - ${PWD}/tailscale-stirling/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    # networks:
+    #  - ...
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped

@@ -1,0 +1,5 @@
+# Envs
+**.env
+
+# Tailscale state
+*/tailscale-*/state

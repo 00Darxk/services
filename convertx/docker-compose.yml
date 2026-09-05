@@ -41,7 +41,7 @@ services:
     volumes:
       - ${PWD}/convertx/appdata:/app/data
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000"]
+      test: ["CMD", "curl", "-fs", "http://127.0.0.1:3000"]
       interval: 1m # How often to perform the check
       timeout: 10s # Time to wait for the check to succeed
       retries: 3 # Number of retries before marking as unhealthy

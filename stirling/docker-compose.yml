@@ -12,7 +12,7 @@ services:
       - ${PWD}/stirling-data/tessdata:/usr/share/tessdata  # OCR language files
       - ${PWD}/stirling-data/configs:/configs               # Settings & database
       - ${PWD}/stirling-data/logs:/logs                     # Application logs
-      - ${PWD}/stirling-data/pipeline:/pipeline             # Automation configs    
+      - ${PWD}/stirling-data/pipeline:/pipeline             # Automation configs
     environment:
       - SYSTEM_DEFAULTLOCALE=en-GB      # Default interface language
     healthcheck:

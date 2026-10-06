@@ -48,7 +48,7 @@ services:
 
   tailscale-jellyfin:
     container_name: tailscale-jellyfin
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.5
     restart: unless-stopped
     environment:
       - TS_AUTHKEY=${TS_KEY_JELLYFIN}
@@ -81,7 +81,7 @@ services:
 
 
   tailscale-seerr:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.5
     container_name: tailscale-seerr
     environment:
       - TS_AUTHKEY=${TS_KEY_SEERR}
@@ -142,7 +142,7 @@ services:
 
 
   tailscale-sonarr:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.5
     container_name: tailscale-sonarr
     environment:
       - TS_AUTHKEY=${TS_KEY_SONARR}
@@ -213,7 +213,7 @@ services:
 
 
   tailscale-radarr:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.5
     container_name: tailscale-radarr
     environment:
       - TS_AUTHKEY=${TS_KEY_RADARR}
@@ -284,7 +284,7 @@ services:
 
 
   tailscale-bazarr:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.5
     container_name: tailscale-bazarr
     environment:
       - TS_AUTHKEY=${TS_KEY_BAZARR}
@@ -355,7 +355,7 @@ services:
 
 
   tailscale-qbittorrent:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.5
     container_name: tailscale-qbittorrent
     environment:
       - TS_AUTHKEY=${TS_KEY_QBITTORRENT}
@@ -417,129 +417,8 @@ services:
     restart: unless-stopped
 
 
-  tailscale-kavita:
-    image: tailscale/tailscale:latest
-    container_name: tailscale-kavita
-    environment:
-      - TS_AUTHKEY=${TS_KEY_KAVITA}
-      - TS_EXTRA_ARGS=--advertise-tags=tag:container
-      - TS_SERVE_CONFIG=/config/kavita.json
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_HOSTNAME=kavita
-      - TS_USERSPACE=false
-      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
-      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
-    volumes:
-      - ${PWD}/tailscale-kavita/state:/var/lib/tailscale
-      - ${PWD}/tailscale-kavita/config:/config
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - net_admin
-    networks:
-      - kavita-to-starr
-      - kavita-bridge
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
-      interval: 1m # How often to perform the check
-      timeout: 10s # Time to wait for the check to succeed
-      retries: 3 # Number of retries before marking as unhealthy
-      start_period: 10s # Time to wait before starting health checks
-    restart: unless-stopped
-
-  kavita:
-    image: lscr.io/linuxserver/kavita:latest
-    container_name: kavita
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - UMASK=002
-      - TZ=Europe/Rome
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - ./kavita/appdata/config:/config
-      - ./data/media/manga:/data/media/manga #optional
-    # ports:
-    #  - 5000:5000
-    network_mode: service:tailscale-kavita
-    depends_on:
-      tailscale-kavita:
-        condition: service_healthy
-      mylar3:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "pgrep", "-f", "kavita"] # Check if ${SERVICE} process is running
-      interval: 1m # How often to perform the check
-      timeout: 10s # Time to wait for the check to succeed
-      retries: 3 # Number of retries before marking as unhealthy
-      start_period: 10s # Time to wait before starting health checks 
-    restart: unless-stopped
-
-
-  tailscale-mylar3:
-    image: tailscale/tailscale:latest
-    container_name: tailscale-mylar3
-    environment:
-      - TS_AUTHKEY=${TS_KEY_MYLAR3}
-      - TS_EXTRA_ARGS=--advertise-tags=tag:container
-      - TS_SERVE_CONFIG=/config/mylar3.json
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_HOSTNAME=mylar3
-      - TS_USERSPACE=false
-      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
-      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
-    volumes:
-      - ${PWD}/tailscale-mylar3/state:/var/lib/tailscale
-      - ${PWD}/tailscale-mylar3/config:/config
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - net_admin
-    networks:
-      - kavita-to-starr
-      - starr-to-clients
-      - mylar3-bridge
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
-      interval: 1m # How often to perform the check
-      timeout: 10s # Time to wait for the check to succeed
-      retries: 3 # Number of retries before marking as unhealthy
-      start_period: 10s # Time to wait before starting health checks
-    restart: unless-stopped
-
-  mylar3:
-    image: lscr.io/linuxserver/mylar3:latest
-    container_name: mylar3
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - UMASK=002
-      - TZ=Europe/Rome
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - ./mylar3/appdata/config:/config
-      - ./data/media/manga:/data/media/manga
-    # ports:
-    #   - 8090:8090
-    network_mode: service:tailscale-mylar3
-    depends_on:
-      tailscale-mylar3:
-        condition: service_healthy
-      prowlarr:
-        condition: service_healthy
-      qbittorrent:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "pgrep", "-f", "mylar3"] # Check if ${SERVICE} process is running
-      interval: 1m # How often to perform the check
-      timeout: 10s # Time to wait for the check to succeed
-      retries: 3 # Number of retries before marking as unhealthy
-      start_period: 10s # Time to wait before starting health checks 
-    restart: unless-stopped
-
-
   tailscale-prowlarr:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.5
     container_name: tailscale-prowlarr
     environment:
       - TS_AUTHKEY=${TS_KEY_PROWLARR}
@@ -598,42 +477,12 @@ services:
     restart: unless-stopped
 
 
-  tailscale-flaresolverr:
-    image: tailscale/tailscale:latest
-    container_name: tailscale-flaresolverr
-    environment:
-      - TS_AUTHKEY=${TS_KEY_FLARESOLVERR}
-      - TS_EXTRA_ARGS=--advertise-tags=tag:container
-      # - TS_SERVE_CONFIG=/config/flaresolverr.json
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_HOSTNAME=flaresolverr
-      - TS_USERSPACE=false
-      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
-      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
-    volumes:
-      - ${PWD}/tailscale-flaresolverr/state:/var/lib/tailscale
-      - ${PWD}/tailscale-flaresolverr/config:/config
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - net_admin
-    networks:
-      - starr-internal
-      - flaresolverr-bridge
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
-      interval: 1m # How often to perform the check
-      timeout: 10s # Time to wait for the check to succeed
-      retries: 3 # Number of retries before marking as unhealthy
-      start_period: 10s # Time to wait before starting health checks
-    restart: unless-stopped
-
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
-    network_mode: service:tailscale-flaresolverr
+    network_mode: service:tailscale-prowlarr
     depends_on:
-      tailscale-flaresolverr:
+      tailscale-prowlarr:
         condition: service_healthy
     # networks:
     #   - starr-internal
@@ -683,13 +532,4 @@ networks:
   qbittorrent-bridge:
     driver: bridge
   prowlarr-bridge:
-    driver: bridge
-  flaresolverr-bridge:
-    driver: bridge
-
-  kavita-to-starr:
-    internal: true
-  kavita-bridge:
-    driver: bridge
-  mylar3-bridge:
     driver: bridge

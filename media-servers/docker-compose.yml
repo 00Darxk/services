@@ -1,6 +1,6 @@
 services:
   jellyfin:
-    image: jellyfin/jellyfin
+    image: jellyfin/jellyfin:12.2
     container_name: jellyfin
     # hostname: jellyfin.internal
     # Optional - specify the uid and gid you would like Jellyfin to use instead of root
@@ -112,7 +112,7 @@ services:
     restart: unless-stopped
 
   seerr:
-    image: ghcr.io/seerr-team/seerr:latest
+    image: ghcr.io/seerr-team/seerr:v3.5.0
     # hostname: seerr.internal
     network_mode: service:tailscale-seerr
     container_name: seerr
@@ -176,7 +176,7 @@ services:
   sonarr:
     container_name: sonarr
     # hostname: sonarr.internal
-    image: ghcr.io/hotio/sonarr
+    image: ghcr.io/hotio/sonarr:release-4.0.20.3014
     restart: unless-stopped
     logging:
       driver: json-file
@@ -247,7 +247,7 @@ services:
   radarr:
     container_name: radarr
     # hostname: radarr.internal
-    image: ghcr.io/hotio/radarr
+    image: ghcr.io/hotio/radarr:release-6.4.4.10685
     restart: unless-stopped
     logging:
       driver: json-file
@@ -317,7 +317,7 @@ services:
   bazarr:
     container_name: bazarr
     # hostname: bazarr.internal
-    image: ghcr.io/hotio/bazarr
+    image: ghcr.io/hotio/bazarr:release-v1.6.2
     restart: unless-stopped
     logging:
       driver: json-file

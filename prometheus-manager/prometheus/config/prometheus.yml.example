@@ -2,7 +2,7 @@
 global:
   scrape_interval: 15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
   evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
-  # scrape_timeout is set to the global default (10s).
+  scrape_timeout: 15s # Set the scrape timeout to 15 seconds. The default is 10 seconds.
 
 # Alertmanager configuration
 alerting:
@@ -33,7 +33,7 @@ scrape_configs:
           mode: "manager"
           host: "alpirmigiano"
 
-  - job_name: "prometheus-agent"
+  - job_name: "prometheus-agent-archeddar"
     static_configs:
       - targets: ["__archeddar__:9090"]
         labels:
@@ -41,10 +41,16 @@ scrape_configs:
           mode: "agent"
           host: "archeddar"
 
+  - job_name: "prometheus-agent-fromaggo"
+    static_configs:
+      - targets: ["__fromaggo__:9090"]
+        labels:
+          app: "prometheus"
+          mode: "agent"
+          host: "fromaggo"
 
   - job_name: "node_exporter-alpirmigiano"
     static_configs:
-      # can't use node_exporter, doesn't fine host
       - targets: ["localhost:9100"]
         labels:
           host: "alpirmigiano"
@@ -52,8 +58,34 @@ scrape_configs:
 
   - job_name: "node_exporter-archeddar"
     static_configs:
-      # can't use node_exporter, doesn't fine host
       - targets: ["__archeddar__:9100"]
         labels:
           host: "archeddar"
           app: "node_exporter"
+
+  - job_name: "windows_exporter-fromaggo"
+    # scrape_interval: 5m
+    # scrape_timeout: 30s
+    static_configs:
+      - targets: ["__fromaggo__:9182"]
+        labels:
+          app: "windows_exporter"
+          host: "fromaggo"
+
+  - job_name: "cadvisor-fromaggo"
+
+    static_configs:
+      - targets: ["__fromaggo__:8080"]
+        labels:
+          app: "cadvisor"
+          host: "fromaggo"
+
+
+  - job_name: "cadvisor-archeddar"
+
+    static_configs:
+      - targets: ["__archeddar__:8080"]
+        labels:
+          app: "cadvisor"
+          host: "archeddar"
+

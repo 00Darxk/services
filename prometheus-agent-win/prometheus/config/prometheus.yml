@@ -46,7 +46,7 @@ scrape_configs:
     
     static_configs:
       - targets:
-          - "localhost:9182"
+          - "host.docker.internal:9182"
         labels:
           app: "windows_exporter"
           host: "fromaggo"
@@ -62,7 +62,7 @@ scrape_configs:
   - job_name: "mc-monitor"
 
     static_configs:
-      - targets: ["localhost:8180"]
+      - targets: ["host.docker.internal:8180"]
         labels:
           app: "mc-monitor"
           host: "fromaggo"

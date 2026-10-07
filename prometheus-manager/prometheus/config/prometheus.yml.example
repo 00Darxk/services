@@ -90,9 +90,9 @@ scrape_configs:
           host: "archeddar"
 
   - job_name: "ntfy"
- 
+    scheme: https
     static_configs:
-      - targets: ["ntfy:443"]
+      - targets: ["__ntfy__"]
         labels:
           app: "ntfy"
           host: "archeddar"

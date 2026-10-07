@@ -89,3 +89,20 @@ scrape_configs:
           app: "cadvisor"
           host: "archeddar"
 
+  - job_name: "ntfy"
+ 
+    static_configs:
+      - targets: ["ntfy:443"]
+        labels:
+          app: "ntfy"
+          host: "archeddar"
+
+  - job_name: "mc-monitor"
+
+    static_configs:
+      - targets: ["cobblemon:9090"]
+        labels:
+          app: "mc-monitor"
+          server: "cobblemon"
+          host: "fromaggo"
+

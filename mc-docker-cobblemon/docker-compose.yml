@@ -1,0 +1,157 @@
+services:
+  minecraft-server-fabric:
+    container_name: 'minecraft-server-fabric-cobblemon'
+    image: itzg/minecraft-server:java21
+    tty: true
+    stdin_open: true
+    network_mode: service:tailscale-cobblemon
+    depends_on:
+      tailscale-cobblemon:
+        condition: service_healthy
+    # ports:
+      # - "${IP}:25565:25565"
+      # - "${IP}:25575:25575"
+      # - "${IP}:25585:8080"
+    environment:
+      EULA: "TRUE"
+      TYPE: FABRIC
+      VERSION: "1.21.1"
+      INIT_MEMORY: '10240M'
+      MAX_MEMORY: '10240M'
+      USE_AIKAR_FLAGS: "true"
+      USE_MEOWICE_FLAGS: "true"
+      TZ: "Europe/Rome"
+      DIFFICULTY: '3'
+      ENABLE_WHITELIST: "true"
+      MODRINTH_PROJECTS: |
+        fabric-api
+        craterlib
+        cobblemon
+        cobbreeding
+        lithium
+        krypton
+        threadtweak
+        tt20
+        cloth-config
+        carpet
+        luckperms
+        trinkets
+        cobblefurnies
+        owo-lib
+        # slumber
+        recipecooldown
+        scalablelux
+        squaremap
+        chunky
+        easyauth
+        noisium
+        squaremap-banner
+        # sdlink
+        terrablender
+        async
+        async-locator-refined
+        athena-ctm
+        distanthorizons
+        tab-was-taken
+        jei
+        resourceful-lib
+        accessories
+        c2me-fabric
+        # c2me-ocl
+        architectury-api
+        cobblemon-mega-showdown
+        ferrite-core
+        legendary-monuments
+        lithostitched
+        immersive-optimization
+        datapack:last-death-location
+        datapack:stackable-shulker-boxes
+      # MODRINTH_DOWNLOAD_DEPENDENCIES: "required"
+      MODRINTH_PROJECTS_DEFAULT_VERSION_TYPE: "alpha"
+      ONLINE_MODE: "FALSE"
+      RCON_ENABLE: "TRUE"
+      RCON_PASSWORD: ${RCON_PASSWORD}
+      ACCEPTS_TRANSFERS: "true"
+      ANNOUNCE_PLAYER_ACHIEVEMENTS: "true"
+      ENABLE_ROLLING_LOGS: "true"
+      LOG_TIMESTAMP: "true"
+    restart: on-failure:2
+    volumes:
+      - "${PWD}/data:/data"
+      - "${PWD}/mods:/data/mods"
+      - "${PWD}/plugins:/data/plugins"
+
+  
+  restore-backup:
+    # Same image as mc, but any base image with bash and tar will work
+    image: itzg/mc-backup
+    container_name: minecraft-server-restore-backup
+    restart: "no"
+    entrypoint: restore-tar-backup
+    volumes:
+      # Must be same mount as mc service, needs to be writable
+      - "${PWD}/data:/data"
+      # Must be same mount as backups service, but can be read-only
+      - "${PWD}/backups:/backups:ro"
+
+
+  backups:
+    image: itzg/mc-backup
+    container_name: minecraft-server-backups
+    depends_on:
+      minecraft-server-fabric:
+        condition: service_healthy
+    environment:
+      BACKUP_INTERVAL: "36h"
+      RCON_HOST: minecraft-server-fabric-cobblemon
+      RCON_PASSWORD: ${RCON_PASSWORD}
+      # since this service waits for mc to be healthy, no initial delay is needed
+      INITIAL_DELAY: 0
+    volumes:
+      - "${PWD}/data:/data:ro"
+      - "${PWD}/backups:/backups"
+
+
+  monitor:
+    image: itzg/mc-monitor
+    command: export-for-prometheus
+    # ports:
+    #   - "${IP}:8080:8080"
+    network_mode: service:tailscale-cobblemon
+    environment:
+      EXPORT_PORT: 9090
+      EXPORT_SERVERS: minecraft-server-fabric-cobblemon
+      DEBUG: "true"
+    depends_on:
+      minecraft-server-fabric:
+        condition: service_healthy
+
+
+  tailscale-cobblemon:
+    image: tailscale/tailscale:v1.102.5
+    container_name: tailscale-cobblemon
+    environment:
+      - TS_AUTHKEY=${TS_KEY_COBBLEMON}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/cobblemon.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=cobblemon
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-cobblemon/state:/var/lib/tailscale
+      - ${PWD}/tailscale-cobblemon/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    # networks:
+    #  - ...
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped

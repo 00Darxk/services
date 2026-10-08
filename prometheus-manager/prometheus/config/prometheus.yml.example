@@ -49,6 +49,14 @@ scrape_configs:
           mode: "agent"
           host: "fromaggo"
 
+  - job_name: "prometheus-agent-archeese"
+    static_configs:
+      - targets: ["__archeese__:9090"]
+        labels:
+          app: "prometheus"
+          mode: "agent"
+          host: "archeese"
+
   - job_name: "node_exporter-alpirmigiano"
     static_configs:
       - targets: ["localhost:9100"]
@@ -61,6 +69,13 @@ scrape_configs:
       - targets: ["__archeddar__:9100"]
         labels:
           host: "archeddar"
+          app: "node_exporter"
+
+  - job_name: "node_exporter-archeese"
+    static_configs:
+      - targets: ["__archeese__:9100"]
+        labels:
+          host: "archeese"
           app: "node_exporter"
 
   - job_name: "windows_exporter-fromaggo"
@@ -88,6 +103,14 @@ scrape_configs:
         labels:
           app: "cadvisor"
           host: "archeddar"
+
+  - job_name: "cadvisor-archeese"
+
+    static_configs:
+      - targets: ["__archeese__:8080"]
+        labels:
+          app: "cadvisor"
+          host: "archeese"
 
   - job_name: "ntfy"
     scheme: https

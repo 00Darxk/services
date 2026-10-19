@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
 
   tailscale-stirling:
-    image: tailscale/tailscale:v1.102.3
+    image: tailscale/tailscale:v1.104.1
     container_name: tailscale-stirling
     environment:
       - TS_AUTHKEY=${TS_KEY_STIRLING}

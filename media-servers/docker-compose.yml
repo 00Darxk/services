@@ -48,7 +48,7 @@ services:
 
   tailscale-jellyfin:
     container_name: tailscale-jellyfin
-    image: tailscale/tailscale:v1.102.5
+    image: tailscale/tailscale:v1.104.1
     restart: unless-stopped
     environment:
       - TS_AUTHKEY=${TS_KEY_JELLYFIN}
@@ -81,7 +81,7 @@ services:
 
 
   tailscale-seerr:
-    image: tailscale/tailscale:v1.102.5
+    image: tailscale/tailscale:v1.104.1
     container_name: tailscale-seerr
     environment:
       - TS_AUTHKEY=${TS_KEY_SEERR}
@@ -142,7 +142,7 @@ services:
 
 
   tailscale-sonarr:
-    image: tailscale/tailscale:v1.102.5
+    image: tailscale/tailscale:v1.104.1
     container_name: tailscale-sonarr
     environment:
       - TS_AUTHKEY=${TS_KEY_SONARR}
@@ -213,7 +213,7 @@ services:
 
 
   tailscale-radarr:
-    image: tailscale/tailscale:v1.102.5
+    image: tailscale/tailscale:v1.104.1
     container_name: tailscale-radarr
     environment:
       - TS_AUTHKEY=${TS_KEY_RADARR}
@@ -284,7 +284,7 @@ services:
 
 
   tailscale-bazarr:
-    image: tailscale/tailscale:v1.102.5
+    image: tailscale/tailscale:v1.104.1
     container_name: tailscale-bazarr
     environment:
       - TS_AUTHKEY=${TS_KEY_BAZARR}
@@ -355,7 +355,7 @@ services:
 
 
   tailscale-qbittorrent:
-    image: tailscale/tailscale:v1.102.5
+    image: tailscale/tailscale:v1.104.1
     container_name: tailscale-qbittorrent
     environment:
       - TS_AUTHKEY=${TS_KEY_QBITTORRENT}
@@ -418,7 +418,7 @@ services:
 
 
   tailscale-prowlarr:
-    image: tailscale/tailscale:v1.102.5
+    image: tailscale/tailscale:v1.104.1
     container_name: tailscale-prowlarr
     environment:
       - TS_AUTHKEY=${TS_KEY_PROWLARR}

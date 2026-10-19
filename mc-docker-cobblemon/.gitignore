@@ -1,7 +1,7 @@
 # Config backups
 *.bak
 
-# Data 
+# MC Data
 data/
 backups/
 mods/

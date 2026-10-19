@@ -1,6 +1,6 @@
 services:
   jellyfin:
-    image: jellyfin/jellyfin
+    image: jellyfin/jellyfin:12.2
     container_name: jellyfin
     # hostname: jellyfin.internal
     # Optional - specify the uid and gid you would like Jellyfin to use instead of root
@@ -48,7 +48,7 @@ services:
 
   tailscale-jellyfin:
     container_name: tailscale-jellyfin
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.5
     restart: unless-stopped
     environment:
       - TS_AUTHKEY=${TS_KEY_JELLYFIN}
@@ -81,7 +81,7 @@ services:
 
 
   tailscale-seerr:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.5
     container_name: tailscale-seerr
     environment:
       - TS_AUTHKEY=${TS_KEY_SEERR}
@@ -112,7 +112,7 @@ services:
     restart: unless-stopped
 
   seerr:
-    image: ghcr.io/seerr-team/seerr:latest
+    image: ghcr.io/seerr-team/seerr:v3.5.0
     # hostname: seerr.internal
     network_mode: service:tailscale-seerr
     container_name: seerr
@@ -142,7 +142,7 @@ services:
 
 
   tailscale-sonarr:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.5
     container_name: tailscale-sonarr
     environment:
       - TS_AUTHKEY=${TS_KEY_SONARR}
@@ -176,7 +176,7 @@ services:
   sonarr:
     container_name: sonarr
     # hostname: sonarr.internal
-    image: ghcr.io/hotio/sonarr
+    image: ghcr.io/hotio/sonarr:release-4.0.20.3014
     restart: unless-stopped
     logging:
       driver: json-file
@@ -213,7 +213,7 @@ services:
 
 
   tailscale-radarr:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.5
     container_name: tailscale-radarr
     environment:
       - TS_AUTHKEY=${TS_KEY_RADARR}
@@ -247,7 +247,7 @@ services:
   radarr:
     container_name: radarr
     # hostname: radarr.internal
-    image: ghcr.io/hotio/radarr
+    image: ghcr.io/hotio/radarr:release-6.4.4.10685
     restart: unless-stopped
     logging:
       driver: json-file
@@ -284,7 +284,7 @@ services:
 
 
   tailscale-bazarr:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.5
     container_name: tailscale-bazarr
     environment:
       - TS_AUTHKEY=${TS_KEY_BAZARR}
@@ -317,7 +317,7 @@ services:
   bazarr:
     container_name: bazarr
     # hostname: bazarr.internal
-    image: ghcr.io/hotio/bazarr
+    image: ghcr.io/hotio/bazarr:release-v1.6.2
     restart: unless-stopped
     logging:
       driver: json-file
@@ -355,7 +355,7 @@ services:
 
 
   tailscale-qbittorrent:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.5
     container_name: tailscale-qbittorrent
     environment:
       - TS_AUTHKEY=${TS_KEY_QBITTORRENT}
@@ -417,129 +417,8 @@ services:
     restart: unless-stopped
 
 
-  tailscale-kavita:
-    image: tailscale/tailscale:latest
-    container_name: tailscale-kavita
-    environment:
-      - TS_AUTHKEY=${TS_KEY_KAVITA}
-      - TS_EXTRA_ARGS=--advertise-tags=tag:container
-      - TS_SERVE_CONFIG=/config/kavita.json
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_HOSTNAME=kavita
-      - TS_USERSPACE=false
-      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
-      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
-    volumes:
-      - ${PWD}/tailscale-kavita/state:/var/lib/tailscale
-      - ${PWD}/tailscale-kavita/config:/config
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - net_admin
-    networks:
-      - kavita-to-starr
-      - kavita-bridge
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
-      interval: 1m # How often to perform the check
-      timeout: 10s # Time to wait for the check to succeed
-      retries: 3 # Number of retries before marking as unhealthy
-      start_period: 10s # Time to wait before starting health checks
-    restart: unless-stopped
-
-  kavita:
-    image: lscr.io/linuxserver/kavita:latest
-    container_name: kavita
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - UMASK=002
-      - TZ=Europe/Rome
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - ./kavita/appdata/config:/config
-      - ./data/media/manga:/data/media/manga #optional
-    # ports:
-    #  - 5000:5000
-    network_mode: service:tailscale-kavita
-    depends_on:
-      tailscale-kavita:
-        condition: service_healthy
-      mylar3:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "pgrep", "-f", "kavita"] # Check if ${SERVICE} process is running
-      interval: 1m # How often to perform the check
-      timeout: 10s # Time to wait for the check to succeed
-      retries: 3 # Number of retries before marking as unhealthy
-      start_period: 10s # Time to wait before starting health checks 
-    restart: unless-stopped
-
-
-  tailscale-mylar3:
-    image: tailscale/tailscale:latest
-    container_name: tailscale-mylar3
-    environment:
-      - TS_AUTHKEY=${TS_KEY_MYLAR3}
-      - TS_EXTRA_ARGS=--advertise-tags=tag:container
-      - TS_SERVE_CONFIG=/config/mylar3.json
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_HOSTNAME=mylar3
-      - TS_USERSPACE=false
-      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
-      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
-    volumes:
-      - ${PWD}/tailscale-mylar3/state:/var/lib/tailscale
-      - ${PWD}/tailscale-mylar3/config:/config
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - net_admin
-    networks:
-      - kavita-to-starr
-      - starr-to-clients
-      - mylar3-bridge
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
-      interval: 1m # How often to perform the check
-      timeout: 10s # Time to wait for the check to succeed
-      retries: 3 # Number of retries before marking as unhealthy
-      start_period: 10s # Time to wait before starting health checks
-    restart: unless-stopped
-
-  mylar3:
-    image: lscr.io/linuxserver/mylar3:latest
-    container_name: mylar3
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - UMASK=002
-      - TZ=Europe/Rome
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - ./mylar3/appdata/config:/config
-      - ./data/media/manga:/data/media/manga
-    # ports:
-    #   - 8090:8090
-    network_mode: service:tailscale-mylar3
-    depends_on:
-      tailscale-mylar3:
-        condition: service_healthy
-      prowlarr:
-        condition: service_healthy
-      qbittorrent:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "pgrep", "-f", "mylar3"] # Check if ${SERVICE} process is running
-      interval: 1m # How often to perform the check
-      timeout: 10s # Time to wait for the check to succeed
-      retries: 3 # Number of retries before marking as unhealthy
-      start_period: 10s # Time to wait before starting health checks 
-    restart: unless-stopped
-
-
   tailscale-prowlarr:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.5
     container_name: tailscale-prowlarr
     environment:
       - TS_AUTHKEY=${TS_KEY_PROWLARR}
@@ -578,7 +457,7 @@ services:
     depends_on:
       tailscale-prowlarr:
         condition: service_healthy
-      byparr:
+      flaresolverr:
         condition: service_healthy
     environment:
       - PUID=1000
@@ -598,46 +477,12 @@ services:
     restart: unless-stopped
 
 
-  tailscale-byparr:
-    image: tailscale/tailscale:latest
-    container_name: tailscale-byparr
-    environment:
-      - TS_AUTHKEY=${TS_KEY_BYPARR}
-      - TS_EXTRA_ARGS=--advertise-tags=tag:container
-      - TS_SERVE_CONFIG=/config/byparr.json
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_HOSTNAME=byparr
-      - TS_USERSPACE=false
-      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
-      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
-    volumes:
-      - ${PWD}/tailscale-byparr/state:/var/lib/tailscale
-      - ${PWD}/tailscale-byparr/config:/config
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - net_admin
-    networks:
-      - starr-internal
-      - byparr-bridge
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
-      interval: 1m # How often to perform the check
-      timeout: 10s # Time to wait for the check to succeed
-      retries: 3 # Number of retries before marking as unhealthy
-      start_period: 10s # Time to wait before starting health checks
-    restart: unless-stopped
-
-  byparr:
-    image: ghcr.io/thephaseless/byparr:latest
-    container_name: byparr
-    deploy:
-      resources:
-        limits:
-          memory: 2048m
-    network_mode: service:tailscale-byparr
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    network_mode: service:tailscale-prowlarr
     depends_on:
-      tailscale-byparr:
+      tailscale-prowlarr:
         condition: service_healthy
     # networks:
     #   - starr-internal
@@ -646,11 +491,15 @@ services:
       - PGID=1000
       - UMASK=002
       - TZ=Europe/Rome
-      - WEBUI_PORTS=8191/tcp
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FILE=${LOG_FILE:-none}
+      - LOG_HTML=${LOG_HTML:-false}
+      - CAPTCHA_SOLVER=${CAPTCHA_SOLVER:-none}
     volumes:
+      - ${PWD}/flaresolverr/appdata/config:/config
       - /etc/localtime:/etc/localtime:ro
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8191/health"] # Check if ${SERVICE} process is running
+      test: ["CMD", "curl", "-fs", "http://localhost:8191"] # Check if ${SERVICE} process is running
       interval: 1m # How often to perform the check
       timeout: 10s # Time to wait for the check to succeed
       retries: 3 # Number of retries before marking as unhealthy
@@ -683,13 +532,4 @@ networks:
   qbittorrent-bridge:
     driver: bridge
   prowlarr-bridge:
-    driver: bridge
-  byparr-bridge:
-    driver: bridge
-
-  kavita-to-starr:
-    internal: true
-  kavita-bridge:
-    driver: bridge
-  mylar3-bridge:
     driver: bridge

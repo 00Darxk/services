@@ -1,6 +1,6 @@
-services: 
+services:
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.13.4
     container_name: prometheus
 #    hostname: prometheus
     restart: unless-stopped
@@ -12,9 +12,9 @@ services:
         condition: service_healthy
       tailscale-prometheus:
         condition: service_healthy
-#    ports: 
+#    ports:
 #      - 9090:9090
-    volumes: 
+    volumes:
       - ${PWD}/prometheus/config:/etc/prometheus
       - ${PWD}/prometheus/data:/prometheus
     healthcheck:
@@ -22,10 +22,10 @@ services:
       interval: 10s
       timeout: 15s
       retries: 10
-      start_period: 40s 
+      start_period: 40s
 
   node_exporter:
-    image: quay.io/prometheus/node-exporter:latest
+    image: quay.io/prometheus/node-exporter:v1.12.1
     container_name: node_exporter
 #    hostname: node_exporter
     command:
@@ -42,7 +42,7 @@ services:
         condition: service_healthy
 #    networks:
 #      - prometheus
-#    ports: 
+#    ports:
 #      - 9100:9100
     pid: host
     restart: unless-stopped
@@ -59,9 +59,58 @@ services:
       retries: 10
       start_period: 40s
 
+  alertmanager:
+    image: prom/alertmanager:v0.34.1
+    container_name: alertmanager
+    restart: unless-stopped
+    volumes:
+      - ${PWD}/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    # ports:
+    #  - 9093:9093
+    network_mode: service:tailscale-prometheus
+    depends_on:
+      tailscale-prometheus:
+        condition: service_healthy
+      ntfy-alertmanager:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9093"]
+      interval: 10s
+      timeout: 15s
+      retries: 10
+      start_period: 40s
+
+  ntfy-alertmanager:
+    image: xenrox/ntfy-alertmanager:1.0.1
+    container_name: ntfy-alertmanager
+    restart: unless-stopped
+    # ports:
+    #   - 8080:8080
+    network_mode: service:tailscale-prometheus
+    depends_on:
+      tailscale-prometheus:
+        condition: service_healthy
+    volumes:
+      - ${PWD}/alertmanager/ntfy-alertmanager:/etc/ntfy-alertmanager/config:ro
+
+  redis:
+    image: redis:8.8.3-alpine
+    container_name: redis
+    restart: unless-stopped
+    volumes:
+      - ${PWD}/cache:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 10s
+      timeout: 15s
+      retries: 10
+      start_period: 40s
+
 
   tailscale-prometheus:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.5
     container_name: tailscale-prometheus
     environment:
       - TS_AUTHKEY=${TS_KEY_PROMETHEUS}
@@ -80,8 +129,6 @@ services:
     cap_add:
       - net_admin
     network_mode: host
-    # networks:
-    #  - ...
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41236/healthz"] # Check Tailscale has a Tailnet IP and is operational
       interval: 1m # How often to perform the check
@@ -89,4 +136,3 @@ services:
       retries: 3 # Number of retries before marking as unhealthy
       start_period: 10s # Time to wait before starting health checks
     restart: unless-stopped
-

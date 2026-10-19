@@ -1,0 +1,44 @@
+http-address :8080
+base-url https://prometheus-manager
+log-level debug
+alert-mode single
+user webhookUser
+password webhookPass
+
+labels {
+    order "severity"
+
+    severity "critical" {
+        priority 4
+    }
+
+    severity "warning" {
+        priority 3
+    }
+
+    severity "info" {
+        priority 1
+    }
+}
+
+resolved {
+    tags "resolved"
+}
+
+ntfy {
+    topic https://ntfy/alertmanager
+}
+
+alertmanager {
+    silence-duration 24h
+    url http://localhost:9093
+    user webhookUser
+    password webhookPass
+}
+
+cache {
+    type redis
+    duration 24h
+
+    redis-url redis://localhost:6379/10
+}

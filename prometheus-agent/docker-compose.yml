@@ -53,4 +53,25 @@ services:
       interval: 10s
       timeout: 15s
       retries: 10
-      start_period: 40s 
+      start_period: 40s
+
+
+  cadvisor:
+    image: ghcr.io/google/cadvisor:0.55.1
+    container_name: cadvisor
+    ports:
+      - "${IP}:8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    devices:
+      - /dev/kmsg
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080"]
+      interval: 10s
+      timeout: 15s
+      retries: 10
+      start_period: 40s
+    restart: unless-stopped

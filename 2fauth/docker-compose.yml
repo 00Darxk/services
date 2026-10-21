@@ -1,13 +1,10 @@
 version: "3"
 services:
   2fauth:
-    image: 2fauth/2fauth
-#    hostname: 2fauth
+    image: 2fauth/2fauth:local
     container_name: 2fauth
     volumes:
-      - ${PWD}/2fauth:/2fauth
-#    ports:
-#      - 8000:8000/tcp
+      - /opt/2fauth/2fadata:/2fauth
     environment:
       # You can change the name of the app
       - APP_NAME=2FAuth
@@ -172,7 +169,7 @@ services:
       start_period: 10s # Time to wait before starting health checks
 
   tailscale-2fauth:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.104.2
     container_name: tailscale-2fauth
     environment:
       - TS_AUTHKEY=${TS_KEY_2FAUTH}

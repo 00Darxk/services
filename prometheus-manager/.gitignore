@@ -1,3 +1,8 @@
 prometheus/data
 prometheus/config/prometheus.yml
+
+alertmanager/alertmanager.yml
+alertmanager/ntfy-alertmanager
+
 cache/
+

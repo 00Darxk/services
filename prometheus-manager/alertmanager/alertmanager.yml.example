@@ -109,5 +109,5 @@ receivers:
     - url: http://localhost:8080
       http_config:
         basic_auth:
-          username: "webhookUser"
-          password: "webhookPass"
+          username: "__DEFAULT_NTFY_USERNAME__"
+          password: "__DEFAULT_NTFY_PASSWORD__"

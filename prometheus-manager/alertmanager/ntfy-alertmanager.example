@@ -2,8 +2,8 @@ http-address :8080
 base-url https://prometheus-manager
 log-level debug
 alert-mode single
-user webhookUser
-password webhookPass
+user __DEFAULT_NTFY_USERNAME__
+password __DEFAULT_NTFY_PASSWORD__
 
 labels {
     order "severity"
@@ -26,14 +26,15 @@ resolved {
 }
 
 ntfy {
-    topic https://ntfy/alertmanager
+    topic https://__NTFY_BASE_URL__/alertmanager
 }
 
 alertmanager {
     silence-duration 24h
     url http://localhost:9093
-    user webhookUser
-    password webhookPass
+    user __DEFAULT_NTFY_USERNAME__
+    password __DEFAULT_NTFY_PASSWORD__
+
 }
 
 cache {

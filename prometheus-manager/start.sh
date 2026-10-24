@@ -19,5 +19,6 @@ yes | cp -i alertmanager/ntfy-alertmanager.example alertmanager/ntfy-alertmanage
 sed -r -i "s|__DEFAULT_NTFY_USERNAME__|${username}|g" alertmanager/ntfy-alertmanager
 sed -r -i "s|__DEFAULT_NTFY_PASSWORD__|${password}|g" alertmanager/ntfy-alertmanager
 sed -r -i "s|__NTFY_BASE_URL__|${NTFY_BASE_URL}|g" alertmanager/ntfy-alertmanager
+sed -r -i "s|__PROMETHEUS_BASE_URL__|${PROMETHEUS_BASE_URL}|g" alertmanager/ntfy-alertmanager
 
 docker compose up -d $1

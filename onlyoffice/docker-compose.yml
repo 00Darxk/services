@@ -1,0 +1,58 @@
+services:
+  onlyoffice-documentserver:
+    image: onlyoffice/documentserver:${TAG:-latest}
+    container_name: onlyoffice-documentserver
+    environment:
+      - JWT_ENABLED=true
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_HEADER=Authorization
+      - JWT_IN_BODY=true
+    network_mode: service:tailscale-onlyoffice
+    depends_on:
+      tailscale-onlyoffice:
+        condition: service_healthy
+    stdin_open: true
+    restart: unless-stopped
+    stop_grace_period: 60s
+    volumes:
+       - ${PWD}/onlyoffice/data:/var/www/onlyoffice/Data
+       - ${PWD}/tailscale-onlyoffice/state/certs/${TS_CERT_DOMAIN}.key:/var/www/onlyoffice/Data/certs/onlyofficekey.key:ro
+       - ${PWD}/tailscale-onlyoffice/state/certs/${TS_CERT_DOMAIN}.crt:/var/www/onlyoffice/Data/certs/onlyofficekey.crt:ro
+       - ${PWD}/onlyoffice/log:/var/log/onlyoffice
+       - ${PWD}/onlyoffice/cache:/var/lib/onlyoffice/documentserver/App_Data/cache/files
+       - ${PWD}/onlyoffice/public:/var/www/onlyoffice/documentserver-example/public/files
+       - ${PWD}/onlyoffice/fonts:/usr/share/fonts
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:80"]
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+
+  tailscale-onlyoffice:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-onlyoffice
+    environment:
+      - TS_AUTHKEY=${TS_KEY_ONLYOFFICE}
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/onlyoffice.json
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=onlyoffice
+      - TS_USERSPACE=false
+      - TS_ENABLE_HEALTH_CHECK=true              # Enable healthcheck endpoint: "/healthz"
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41234       # The <addr>:<port> for the healthz endpoint
+    volumes:
+      - ${PWD}/tailscale-onlyoffice/state:/var/lib/tailscale
+      - ${PWD}/tailscale-onlyoffice/config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
+      interval: 1m # How often to perform the check
+      timeout: 10s # Time to wait for the check to succeed
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 10s # Time to wait before starting health checks
+    restart: unless-stopped
+

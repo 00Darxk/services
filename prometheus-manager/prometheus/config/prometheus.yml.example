@@ -1,3 +1,4 @@
+---
 # my global config
 global:
   scrape_interval: 15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
@@ -130,3 +131,10 @@ scrape_configs:
           server: "cobblemon"
           host: "fromaggo"
 
+  - job_name: "tailscale_exporter"
+
+    static_configs:
+      - targets: ["localhost:9250"]
+        labels:
+          app: "tailscale_exporter"
+          host: "alpirmigiano"

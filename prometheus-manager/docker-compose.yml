@@ -98,6 +98,25 @@ services:
       retries: 10
       start_period: 40s
 
+  tailscale-exporter:
+    image: adinhodovic/tailscale-exporter:0.7.1
+    container_name: tailscale-exporter
+    restart: unless-stopped
+    environment:
+      - TAILSCALE_OAUTH_CLIENT_ID="${TS_OAUTH_CLIENT_ID}"
+      - TAILSCALE_OAUTH_CLIENT_SECRET="${TS_OAUTH_CLIENT_SECRET}"
+      - TAILSCALE_TAILNET="${TAILNET}"
+    network_mode: service:tailscale-prometheus
+    depends_on:
+      tailscale-prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9250"]
+      interval: 10s
+      timeout: 15s
+      retries: 10
+      start_period: 40s
+
 
   tailscale-prometheus:
     image: tailscale/tailscale:v1.102.5

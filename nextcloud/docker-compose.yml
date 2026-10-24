@@ -13,30 +13,31 @@ services:
     networks:
       - nextcloud-internal
     hostname: db
-    container_name: nextcloud-db 
+    container_name: nextcloud-db
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 
   app:
-    image: nextcloud
+    image: nextcloud:35.0.2
     restart: unless-stopped
-    # ports:
-    #   - 8080:80
     depends_on:
       db:
-        condition: service_started
-      tailscale-nextcloud: 
+        condition: service_healthy
+      tailscale-nextcloud:
         condition: service_healthy
     volumes:
       - ${PWD}/nextcloud:/var/www/html
-      # - ${PWD}/../media-servers/data:/var/www/html/data
+      # ${DATA_PATH}/nextcloud/data:/var/www/html/data
     environment:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud
       - MYSQL_HOST=db
-    # networks:
-    #  - nextcloud-internal
-    # hostname: nextcloud
     network_mode: service:tailscale-nextcloud
     container_name: nextcloud-app
     healthcheck:
@@ -50,9 +51,6 @@ services:
     image: ghcr.io/nextcloud/nextcloud-appapi-harp:release
     container_name: appapi-harp
     hostname: appapi-harp.internal
-    # ports:
-    #  - 127.0.0.1:8780:8780
-    #  - 127.0.0.1:8782:8782
     environment:
       - HP_SHARED_KEY="${HP_SHARED_KEY}"
       - NC_INSTANCE_URL="https://${TS_CERT_DOMAIN}"
@@ -60,14 +58,10 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${PWD}/harp/appdata/certs:/certs
-    # network_mode: service:tailscale-nextcloud
     depends_on:
-      # tailscale-nextcloud:
-      #   condition: service_healthy
       app:
         condition: service_healthy
     networks:
-    #   - nextcloud-internal
       - nextcloud-bridge
     restart: unless-stopped
 

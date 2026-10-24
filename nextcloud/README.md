@@ -8,7 +8,14 @@ Edit the file `nextcloud/config/config.php` to allow Tailscale to run as proxy, 
 'overwriteprotocol' => 'https',
 'overwrite.cli.url' => 'https://${TS_CERT_DOMAIN}',
 ```
-Use the TS sidecar actual values for `$TS_IP` and `$TS_CERT_DOMAIN`
+Use the Nextcloud TS sidecar actual values for `$TS_IP` and `$TS_CERT_DOMAIN`
 
->
-> need to bind `/data:/var/www/html/data` with media servers change
+Add the following to allow connecting to OnlyOffice through Tailscale:
+```php
+'onlyoffice' => [
+    'allow_local_address' => true,
+],
+```
+
+
+Generate the `HP_SHARED_KEY` use any password generator, for `JWT_SECRET` you can use `openssl rand -hex 32`

@@ -3,6 +3,9 @@ services:
     image: binwiederhier/ntfy:v2.28.0
     container_name: ntfy
     network_mode: service:tailscale-ntfy
+    depends_on:
+      tailscale-ntfy:
+        condition: service_healthy
     command:
       - serve
     environment:
@@ -16,8 +19,6 @@ services:
       - ${PWD}/var/cache/ntfy:/var/cache/ntfy
       - ${PWD}/var/cache/ntfy/attachements:/var/cache/ntfy/attachements
       - ${PWD}/etc/ntfy:/etc/ntfy
-    # ports:
-    #   - 80:80
     healthcheck: # optional: remember to adapt the host:port to your environment
         test: ["CMD-SHELL", "wget -q --tries=1 http://localhost:80/v1/health -O - | grep -Eo '\"healthy\"\\s*:\\s*true' || exit 1"]
         interval: 60s
@@ -47,8 +48,8 @@ services:
       - /dev/net/tun:/dev/net/tun
     cap_add:
       - net_admin
-    # networks:
-    #  - ...
+    ports:
+      - "${IP}:80:80"
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41234/healthz"] # Check Tailscale has a Tailnet IP and is operational
       interval: 1m # How often to perform the check

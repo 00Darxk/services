@@ -6,6 +6,6 @@ visitor-attachment-total-size-limit: "100M"
 visitor-attachment-daily-bandwidth-limit: "50M"
 
 behind-proxy: true
-proxy-forwarded-header: "X-Client-IP"
+proxy-forwarded-header: "X-Forwarded-For"
 
 enable-metrics: true

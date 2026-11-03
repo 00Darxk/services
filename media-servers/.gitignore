@@ -1,8 +1,6 @@
 # Services data
 bazarr/
 jellyfin/
-#kavita/
-#mylar3/
 prowlarr/
 qbittorrent/
 radarr/
@@ -12,3 +10,6 @@ flaresolverr/
 
 # Data directory
 data/
+
+# Backups
+**.bak

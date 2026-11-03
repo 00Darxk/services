@@ -2,53 +2,50 @@ services:
   jellyfin:
     image: jellyfin/jellyfin:12.2
     container_name: jellyfin
-    # hostname: jellyfin.internal
     # Optional - specify the uid and gid you would like Jellyfin to use instead of root
-    # user: uid:gid
+    user: "${UID}:${GID}"
     # ports:
     #   - 8096:8096/tcp
     #   - 7359:7359/udp
+    environment:
+      - JELLYFIN_DATA_DIR=/var/lib/jellyfin
+      - JELLYFIN_CACHE_DIR=/var/cache/jellyfin
+      - JELLYFIN_CONFIG_DIR=/var/lib/jellyfin/config
+      - JELLYFIN_LOG_DIR=/var/lib/jellyfin/log
+      # Optional - alternative address used for autodiscovery
+      # - JELLYFIN_PublishedServerUrl="http://localhost:8096"
     volumes:
-      - ./jellyfin/config:/config
-      - ./jellyfin/cache:/cache
+      - ${PWD}/jellyfin/config:/var/lib/jellyfin
+      - ${PWD}/jellyfin/cache:/var/cache/jellyfin
       - type: bind
-        source: ./data/media
+        source: ${DATA}/data/media
         target: /data/media
       - type: bind
-        source: ./data/media2
+        source: ${DATA}/data/media2
         target: /data/media2
         read_only: true
       # Optional - extra fonts to be used during transcoding with subtitle burn-in
       - type: bind
-        source: ./jellyfin/fonts
+        source: ${PWD}/jellyfin/fonts
         target: /usr/local/share/fonts/custom
         read_only: true
     restart: 'unless-stopped'
-    # Optional - alternative address used for autodiscovery
-    # environment:
-    #   - JELLYFIN_PublishedServerUrl=http://example.com
     # Optional - may be necessary for docker healthcheck to pass if running in host network mode
     # extra_hosts:
     #   - 'host.docker.internal:host-gateway'
     #
     network_mode: service:tailscale-jellyfin
-    # networks:
-    #   - jellyfin-internal
     depends_on:
       tailscale-jellyfin:
         condition: service_healthy
       seerr:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "pgrep", "-f", "jellyfin"] # Check if ${SERVICE} process is running
-      interval: 1m # How often to perform the check
-      timeout: 10s # Time to wait for the check to succeed
-      retries: 3 # Number of retries before marking as unhealthy
-      start_period: 30s # Time to wait before starting health checks
+      bazarr:
+        condition: service_healthy
 
   tailscale-jellyfin:
     container_name: tailscale-jellyfin
-    image: tailscale/tailscale:v1.102.5
+    image: tailscale/tailscale:v1.104.4
     restart: unless-stopped
     environment:
       - TS_AUTHKEY=${TS_KEY_JELLYFIN}
@@ -66,7 +63,6 @@ services:
       - /dev/net/tun:/dev/net/tun
     cap_add:
       - net_admin
-    # network_mode: host
     networks:
       - jellyfin-to-seerr
       - bazarr-to-jellyfin
@@ -81,7 +77,7 @@ services:
 
 
   tailscale-seerr:
-    image: tailscale/tailscale:v1.102.5
+    image: tailscale/tailscale:v1.104.4
     container_name: tailscale-seerr
     environment:
       - TS_AUTHKEY=${TS_KEY_SEERR}
@@ -112,8 +108,7 @@ services:
     restart: unless-stopped
 
   seerr:
-    image: ghcr.io/seerr-team/seerr:v3.5.0
-    # hostname: seerr.internal
+    image: ghcr.io/seerr-team/seerr:v3.5.1
     network_mode: service:tailscale-seerr
     container_name: seerr
     environment:
@@ -131,18 +126,22 @@ services:
         condition: service_healthy
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ./seerr/appdata/config:/app/config
+      - ${PWD}/seerr/appdata/config:/app/config
     restart: unless-stopped
     healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1 # Check if ${SERVICE} process is running
+      test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1
       interval: 1m # How often to perform the check
       timeout: 10s # Time to wait for the check to succeed
       retries: 3 # Number of retries before marking as unhealthy
       start_period: 10s # Time to wait before starting health checks
+    security_opt:
+      - no-new-privileges
+    cap_drop:
+      - ALL
 
 
   tailscale-sonarr:
-    image: tailscale/tailscale:v1.102.5
+    image: tailscale/tailscale:v1.104.4
     container_name: tailscale-sonarr
     environment:
       - TS_AUTHKEY=${TS_KEY_SONARR}
@@ -175,16 +174,11 @@ services:
 
   sonarr:
     container_name: sonarr
-    # hostname: sonarr.internal
     image: ghcr.io/hotio/sonarr:release-4.0.20.3014
     restart: unless-stopped
     logging:
       driver: json-file
     network_mode: service:tailscale-sonarr
-    # networks:
-    #  - seerr-to-starr
-    #  - starr-to-clients
-    #  - sonarr-internal
     depends_on:
       tailscale-sonarr:
         condition: service_healthy
@@ -195,15 +189,15 @@ services:
     # ports:
     #   - "8989:8989"
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${UID}
+      - PGID=${GID}
       - UMASK=002
       - TZ=Europe/Rome
-      - WEBUI_PORTS=8989/tcp 
+      - WEBUI_PORTS=8989/tcp
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ./sonarr/appdata/config:/config
-      - ./data:/data
+      - ${PWD}/sonarr/appdata/config:/config
+      - ${DATA}/data:/data
     healthcheck:
       test: ["CMD", "pgrep", "-f", "sonarr"] # Check if ${SERVICE} process is running
       interval: 1m # How often to perform the check
@@ -213,7 +207,7 @@ services:
 
 
   tailscale-radarr:
-    image: tailscale/tailscale:v1.102.5
+    image: tailscale/tailscale:v1.104.4
     container_name: tailscale-radarr
     environment:
       - TS_AUTHKEY=${TS_KEY_RADARR}
@@ -246,16 +240,11 @@ services:
 
   radarr:
     container_name: radarr
-    # hostname: radarr.internal
     image: ghcr.io/hotio/radarr:release-6.4.4.10685
     restart: unless-stopped
     logging:
       driver: json-file
     network_mode: service:tailscale-radarr
-    # networks:
-    #   - seerr-to-starr
-    #   - starr-to-clients
-    #   - radarr-internal
     depends_on:
       tailscale-radarr:
         condition: service_healthy
@@ -266,15 +255,15 @@ services:
     # ports:
     #   - "8989:8989"
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${UID}
+      - PGID=${GID}
       - UMASK=002
       - TZ=Europe/Rome
-      - WEBUI_PORTS=7878/tcp 
+      - WEBUI_PORTS=7878/tcp
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ./radarr/appdata/config:/config
-      - ./data:/data
+      - ${PWD}/radarr/appdata/config:/config
+      - ${DATA}/data:/data
     healthcheck:
       test: ["CMD", "pgrep", "-f", "radarr"] # Check if ${SERVICE} process is running
       interval: 1m # How often to perform the check
@@ -284,7 +273,7 @@ services:
 
 
   tailscale-bazarr:
-    image: tailscale/tailscale:v1.102.5
+    image: tailscale/tailscale:v1.104.4
     container_name: tailscale-bazarr
     environment:
       - TS_AUTHKEY=${TS_KEY_BAZARR}
@@ -316,17 +305,11 @@ services:
 
   bazarr:
     container_name: bazarr
-    # hostname: bazarr.internal
     image: ghcr.io/hotio/bazarr:release-v1.6.2
     restart: unless-stopped
     logging:
       driver: json-file
     network_mode: service:tailscale-bazarr
-    # networks:
-    #  - bazarr-internal
-    # links:
-    #   - sonarr:sonarr.internal
-    #   - radarr:radarr.internal
     depends_on:
       tailscale-bazarr:
         condition: service_healthy
@@ -337,15 +320,15 @@ services:
     # ports:
     #   - "6767:6767"
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${UID}
+      - PGID=${GID}
       - UMASK=002
       - TZ=Europe/Rome
       - WEBUI_PORTS=6767/tcp 
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ./bazarr/appdata/config:/config
-      - ./data:/data
+      - ${PWD}/bazarr/appdata/config:/config
+      - ${DATA}/data:/data
     healthcheck:
       test: ["CMD", "pgrep", "-f", "bazarr"] # Check if ${SERVICE} process is running
       interval: 1m # How often to perform the check
@@ -355,7 +338,7 @@ services:
 
 
   tailscale-qbittorrent:
-    image: tailscale/tailscale:v1.102.5
+    image: tailscale/tailscale:v1.104.4
     container_name: tailscale-qbittorrent
     environment:
       - TS_AUTHKEY=${TS_KEY_QBITTORRENT}
@@ -387,24 +370,18 @@ services:
   qbittorrent:
     container_name: qbittorrent
     image: ghcr.io/hotio/qbittorrent
-    # hostname: qbittorrent.internal
-    # ports:
-    #  - 18081:18081
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${UID}
+      - PGID=${GID}
       - UMASK=002
       - TZ=Europe/Rome
-      - WEBUI_PORTS=8080/tcp 
+      - WEBUI_PORTS=8080/tcp
       - LIBTORRENT=v1
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ./qbittorrent/appdata/config:/config
-      - ./data/torrents:/data/torrents
+      - ${PWD}/qbittorrent/appdata/config:/config
+      - ${DATA}/data/torrents:/data/torrents
     network_mode: service:tailscale-qbittorrent
-    # networks:
-    #   - starr-to-clients
-    #   - qbittorrent-internal
     depends_on:
       tailscale-qbittorrent:
         condition: service_healthy
@@ -418,7 +395,7 @@ services:
 
 
   tailscale-prowlarr:
-    image: tailscale/tailscale:v1.102.5
+    image: tailscale/tailscale:v1.104.4
     container_name: tailscale-prowlarr
     environment:
       - TS_AUTHKEY=${TS_KEY_PROWLARR}
@@ -450,7 +427,7 @@ services:
 
   prowlarr:
     container_name: prowlarr
-    image: ghcr.io/hotio/prowlarr
+    image: ghcr.io/hotio/prowlarr:release-2.7.0.5723
     # ports:
     #  - "9696:9696"
     network_mode: service:tailscale-prowlarr
@@ -460,14 +437,14 @@ services:
       flaresolverr:
         condition: service_healthy
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${UID}
+      - PGID=${GID}
       - UMASK=002
       - TZ=Europe/Rome
       - WEBUI_PORTS=9696/tcp
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ./prowlarr/appdata/config:/config
+      - ${PWD}/prowlarr/appdata/config:/config
     healthcheck:
       test: ["CMD", "pgrep", "-f", "prowlarr"] # Check if ${SERVICE} process is running
       interval: 1m # How often to perform the check
@@ -478,17 +455,15 @@ services:
 
 
   flaresolverr:
-    image: ghcr.io/flaresolverr/flaresolverr:latest
+    image: flaresolverr/flaresolverr:v3.5.2
     container_name: flaresolverr
     network_mode: service:tailscale-prowlarr
     depends_on:
       tailscale-prowlarr:
         condition: service_healthy
-    # networks:
-    #   - starr-internal
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${UID}
+      - PGID=${GID}
       - UMASK=002
       - TZ=Europe/Rome
       - LOG_LEVEL=${LOG_LEVEL:-info}

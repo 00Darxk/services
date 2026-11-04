@@ -38,6 +38,9 @@ services:
   tailscale-speedtest-tracker:
     image: tailscale/tailscale:latest
     container_name: tailscale-speedtest-tracker
+    ports:
+      - "127.0.0.1:8443:443"
+      - "${IP}:8443:8443"
     environment:
       - TS_AUTHKEY=${TS_KEY_SPEEDTEST_TRACKER}
       - TS_EXTRA_ARGS=--advertise-tags=tag:container

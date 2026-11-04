@@ -51,6 +51,8 @@ scrape_configs:
           host: "archeddar"
 
   - job_name: "speedtest-tracker"
+    scrape_interval: 3600s
+    scrape_timeout: 10s
     scheme: https
     tls_config:
       insecure_skip_verify: true

@@ -41,7 +41,6 @@ scrape_configs:
         labels:
           app: "node_exporter"
           host: "archeddar"
-          #mode: "agent"
 
   - job_name: "cadvisor"
 
@@ -49,4 +48,18 @@ scrape_configs:
       - targets: ["cadvisor:8080"]
         labels:
           app: "cadvisor"
+          host: "archeddar"
+
+  - job_name: "speedtest-tracker"
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    metrics_path: /prometheus
+    basic_auth:
+      username: '__speedtest-tracker_username__'
+      password: '__speedtest-tracker_password__'
+    static_configs:
+      - targets: ["localhost:8443"]
+        labels:
+          app: "speedtest-tracker"
           host: "archeddar"

@@ -9,8 +9,8 @@ services:
      - PUID=1000
      - PGID=1000
      - APP_KEY=${APP_KEY}
-     - APP_URL=
-     - APP_NAME=Speedtest
+     - APP_URL=${APP_URL}
+     - APP_NAME=${APP_NAME}
      - ADMIN_NAME=${ADMIN_NAME:-admin}
      - ADMIN_EMAIL=${ADMIN_EMAIL}
      - ADMIN_PASSWORD=${ADMIN_PASSWORD}

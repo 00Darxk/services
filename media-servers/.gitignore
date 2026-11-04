@@ -1,6 +1,7 @@
 # Services data
 bazarr/
-jellyfin/
+jellyfin/*
+!jellyfin/rffmpeg
 prowlarr/
 qbittorrent/
 radarr/

@@ -1,6 +1,13 @@
 services:
   jellyfin:
-    image: jellyfin/jellyfin:12.2
+    build:
+      context: ${PWD}/jellyfin/rffmpeg
+      args:
+        JELLYFIN_USER: ${JELLYFIN_USER}
+        UID: ${UID}
+        GID: ${GID}
+        RFFMPEG_SERVER: ${RFFMPEG_SERVER}
+    image: jellyfin/jellyfin:12.4
     container_name: jellyfin
     # Optional - specify the uid and gid you would like Jellyfin to use instead of root
     user: "${UID}:${GID}"
@@ -9,14 +16,18 @@ services:
     #   - 7359:7359/udp
     environment:
       - JELLYFIN_DATA_DIR=/var/lib/jellyfin
+      - XDG_CACHE_HOME=/var/cache/jellyfin
       - JELLYFIN_CACHE_DIR=/var/cache/jellyfin
       - JELLYFIN_CONFIG_DIR=/var/lib/jellyfin/config
-      - JELLYFIN_LOG_DIR=/var/lib/jellyfin/log
+      - JELLYFIN_LOG_DIR=/var/log/jellyfin
+      - TEMPDIR=/var/cache/jellyfin/tmp
       # Optional - alternative address used for autodiscovery
       # - JELLYFIN_PublishedServerUrl="http://localhost:8096"
     volumes:
       - ${PWD}/jellyfin/config:/var/lib/jellyfin
+      - /var/lib/jellyfin/.ssh:/var/lib/jellyfin/.ssh:ro
       - ${PWD}/jellyfin/cache:/var/cache/jellyfin
+      - ${PWD}/jellyfin/log:/var/log/jellyfin
       - type: bind
         source: ${DATA}/data/media
         target: /data/media

@@ -49,6 +49,11 @@ scrape_configs:
           app: "prometheus"
           mode: "agent"
           host: "archeese"
+    relabel_configs: &https_archeese
+      - source_labels: [host]
+        regex: "archeese"
+        target_label: "__scheme__"
+        replacement: "https"
 
   - job_name: "node_exporter"
     static_configs:
@@ -68,6 +73,7 @@ scrape_configs:
         labels:
           host: "akasha"
           app: "node_exporter"
+    relabel_configs: *https_archeese
 
   - job_name: "windows_exporter"
     static_configs:
@@ -90,6 +96,7 @@ scrape_configs:
         labels:
           app: "cadvisor"
           host: "archeese"
+    relabel_configs: *https_archeese
 
   - job_name: "ntfy"
     scheme: https
@@ -112,4 +119,21 @@ scrape_configs:
       - targets: ["localhost:9250"]
         labels:
           app: "tailscale_exporter"
+          host: "alpirmigiano"
+
+  - job_name: "speedtest-tracker"
+    scrape_interval: 3600s
+    scrape_timeout: 10s
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    metrics_path: /prometheus
+    static_configs:
+      - targets: ["__archeddar__:8443"]
+        labels:
+          app: "speedtest-tracker"
+          host: "archeddar"
+      - targets: ["localhost:8443"]
+        labels:
+          app: "speedtest-tracker"
           host: "alpirmigiano"

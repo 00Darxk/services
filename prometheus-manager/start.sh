@@ -8,10 +8,6 @@ sed -r -i "s|__fromaggo__|${FROMAGGO_IP}|g" prometheus/config/prometheus.yml
 sed -r -i "s|__akasha__|${AKASHA_IP}|g" prometheus/config/prometheus.yml
 sed -r -i "s|__archeese__|${ARCHEESE_URL}|g" prometheus/config/prometheus.yml
 sed -r -i "s|__ntfy__|${NTFY_BASE_URL}|g" prometheus/config/prometheus.yml
-sed -r -i "s|__speedtest-tracker-archeddar_username__|${SPEEDTEST_TRACKER_ARCHEDDAR_USERNAME}|g" prometheus/config/prometheus.yml
-sed -r -i "s|__speedtest-tracker-archeddar_password__|${SPEEDTEST_TRACKER_ARCHEDDAR_PASSWORD}|g" prometheus/config/prometheus.yml
-sed -r -i "s|__speedtest-tracker-alpirmigiano_username__|${SPEEDTEST_TRACKER_ALPIRMIGIANO_USERNAME}|g" prometheus/config/prometheus.yml
-sed -r -i "s|__speedtest-tracker-alpirmigiano-password__|${SPEEDTEST_TRACKER_ALPIRMIGIANO_PASSWORD}|g" prometheus/config/prometheus.yml
 
 username=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 64)
 password=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 64)

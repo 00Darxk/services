@@ -16,7 +16,7 @@ services:
     environment:
       - SYSTEM_DEFAULTLOCALE=en-GB      # Default interface language
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080"]
+      test: ["CMD", "curl", "-fs", "http://localhost:8080"]
       interval: 1m # How often to perform the check
       timeout: 10s # Time to wait for the check to succeed
       retries: 3 # Number of retries before marking as unhealthy

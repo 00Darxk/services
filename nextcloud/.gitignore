@@ -1,3 +1,8 @@
-nextcloud/
+# Nextcloud Data
+nextcloud/data/
+
+# Database
 db/
+
+# HARP Data
 harp/

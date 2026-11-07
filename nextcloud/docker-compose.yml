@@ -1,5 +1,5 @@
 services:
-  db:
+  nextcloud-db:
     image: mariadb:10.6
     restart: unless-stopped
     command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
@@ -8,11 +8,11 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=nextcloud
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-nextcloud}
+      - MYSQL_USER=${MYSQL_USER:-nextcloud}
     networks:
       - nextcloud-internal
-    hostname: db
+    hostname: nextcloud-db
     container_name: nextcloud-db
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
@@ -22,22 +22,25 @@ services:
       retries: 3
 
 
-  app:
-    image: nextcloud:35.0.2
+  nextcloud:
+    image: nextcloud:${TAG:-35.0.2}-local
+    build:
+      context: nextcloud
+      args:
+        TAG: ${TAG:-35.0.2}
     restart: unless-stopped
     depends_on:
-      db:
+      nextcloud-db:
         condition: service_healthy
       tailscale-nextcloud:
         condition: service_healthy
     volumes:
-      - ${PWD}/nextcloud:/var/www/html
-      # ${DATA_PATH}/nextcloud/data:/var/www/html/data
+      - ${PWD}/nextcloud/data:/var/www/html
     environment:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=nextcloud
-      - MYSQL_HOST=db
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-nextcloud}
+      - MYSQL_USER=${MYSQL_USER:-nextcloud}
+      - MYSQL_HOST=nextcloud-db
     network_mode: service:tailscale-nextcloud
     container_name: nextcloud-app
     healthcheck:
@@ -59,14 +62,14 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${PWD}/harp/appdata/certs:/certs
     depends_on:
-      app:
+      nextcloud:
         condition: service_healthy
     networks:
       - nextcloud-bridge
     restart: unless-stopped
 
   tailscale-nextcloud:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.104.4
     container_name: tailscale-nextcloud
     environment:
       - TS_AUTHKEY=${TS_KEY_NEXTCLOUD}

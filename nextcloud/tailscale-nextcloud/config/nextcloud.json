@@ -2,13 +2,23 @@
   "TCP": {
     "443": {
       "HTTPS": true
+    },
+    "80": {
+      "HTTPS": true
     }
   },
   "Web": {
     "${TS_CERT_DOMAIN}:443": {
       "Handlers": {
         "/": {
-          "Proxy": "http://localhost:80" 
+          "Proxy": "http://localhost:80"
+        }
+      }
+    },
+    "${TS_CERT_DOMAIN}:80": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://localhost:80"
         }
       }
     }

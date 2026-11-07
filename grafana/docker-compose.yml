@@ -1,7 +1,7 @@
 services:
 
   grafana:
-    image: grafana/grafana-enterprise:latest
+    image: grafana/grafana-enterprise:13.0
     container_name: grafana
     # ports
     # - 3000:3000
@@ -11,7 +11,7 @@ services:
       tailscale-grafana:
         condition: service_healthy
     volumes:
-      - grafana-data:/var/lib/grafana
+      - ${PWD}/grafana/data:/var/lib/grafana
     environment:
       # to install plugins for grafana
       - GF_PLUGINS_PREINSTALL=grafana-clock-panel, grafana-simple-json-datasource, grafana-github-datasource

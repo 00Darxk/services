@@ -1,10 +1,15 @@
 version: "3"
 services:
   2fauth:
-    image: 2fauth/2fauth:local
+    image: 2fauth/2fauth:local-v8.0.2
+#    hostname: 2fauth
     container_name: 2fauth
+#    user: "${UID}:${GID}"
     volumes:
       - /opt/2fauth/2fadata:/2fauth
+    #  - ${PWD}/2fauth:/2fauth
+    #    ports:
+#      - 8000:8000/tcp
     environment:
       # You can change the name of the app
       - APP_NAME=2FAuth
@@ -53,13 +58,13 @@ services:
       # Refer your email provider documentation to configure your mail settings
       # Set a value for every available setting to avoid issue
       - MAIL_MAILER=log
-      - MAIL_HOST=null
-      - MAIL_PORT=null
-      - MAIL_USERNAME=null
-      - MAIL_PASSWORD=null
-      - MAIL_ENCRYPTION=null
-      - MAIL_FROM_NAME=null
-      - MAIL_FROM_ADDRESS=null
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_ENCRYPTION=${MAIL_ENCRYPTION}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME}
+      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS}
       # SSL peer verification.
       # Set this to false to disable the SSL certificate validation.
       # WARNING
@@ -162,14 +167,14 @@ services:
       tailscale-2fauth:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8000"] # Check Tailscale has a Tailnet IP and is operational
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8000/up"]
       interval: 1m # How often to perform the check
       timeout: 10s # Time to wait for the check to succeed
       retries: 3 # Number of retries before marking as unhealthy
       start_period: 10s # Time to wait before starting health checks
 
   tailscale-2fauth:
-    image: tailscale/tailscale:v1.104.2
+    image: tailscale/tailscale:latest
     container_name: tailscale-2fauth
     environment:
       - TS_AUTHKEY=${TS_KEY_2FAUTH}

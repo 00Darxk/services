@@ -13,6 +13,8 @@ services:
       #   condition: service_healthy
       cadvisor:
         condition: service_healthy
+      tailscale-exporter:
+        condition: service_healthy
     volumes: 
       - ${PWD}/prometheus/config/prometheus.yml:/prometheus/prometheus.yml
       - ${PWD}/prometheus/config:/etc/prometheus
@@ -74,4 +76,19 @@ services:
       timeout: 15s
       retries: 10
       start_period: 40s
+    restart: unless-stopped
+
+
+  tailscale-exporter:
+    image: 00darxk/tailscale-exporter:latest
+    build:
+      context: tailscale-exporter/
+    hostname: ${HOSTNAME}
+    container_name: tailscale-exporter
+    ports:
+      - "${IP}:9250:9250"
+    environment:
+      TAILSCALE_TAILNET: ${TAILSCALE_TAILNET}
+      TAILSCALE_OAUTH_CLIENT_ID: ${TAILSCALE_OAUTH_CLIENT_ID}
+      TAILSCALE_OAUTH_CLIENT_SECRET: ${TAILSCALE_OAUTH_CLIENT_SECRET}
     restart: unless-stopped

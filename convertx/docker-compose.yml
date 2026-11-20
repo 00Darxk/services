@@ -35,6 +35,9 @@ services:
     # ports:
     #  - "3000:3000"
     network_mode: service:tailscale-convertx
+    depends_on:
+      tailscale-convertx:
+        condition: service_healthy
     environment:
       - JWT_SECRET=${JWT_SECRET} # will use randomUUID() if unset
       # - HTTP_ALLOWED=true # uncomment this if accessing it over a non-https connection

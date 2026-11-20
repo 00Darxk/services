@@ -2,8 +2,6 @@ services:
   homepage:
     image: ghcr.io/gethomepage/homepage:latest
     container_name: homepage
-#   ports:
-#     - 3000:3000
     volumes:
       - ${PWD}/app/config:/app/config # Make sure your local config directory exists
       - ${PWD}/app/public/image:/app/public/image
@@ -12,6 +10,9 @@ services:
     environment:
       HOMEPAGE_ALLOWED_HOSTS: ${TS_HOST} # required, may need port. See gethomepage.dev/installation/#homepage_allowed_hosts
     network_mode: service:tailscale-homepage
+    depends_on:
+      tailscale-homepage:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"] # Check Tailscale has a Tailnet IP and is operational
       interval: 1m # How often to perform the check

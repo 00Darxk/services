@@ -4,17 +4,13 @@ services:
     hostname: ${HOSTNAME}
     container_name: prometheus-agent
     command:
-#      - "--enable-feature=agent"
       - "--agent"
     restart: unless-stopped
     ports: 
       - ${IP}:9090:9090
-      # - ${IP}:9095:9095
-    links: 
-      - node_exporter
     depends_on:
-      node_exporter:
-        condition: service_healthy
+      # node_exporter:
+      #   condition: service_healthy
       cadvisor:
         condition: service_healthy
     volumes: 
@@ -51,7 +47,6 @@ services:
       - /:/rootfs:ro
     cap_add:
       - SYS_TIME
-    #network_mode: service:prometheus-agent
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:9100"]
       interval: 10s

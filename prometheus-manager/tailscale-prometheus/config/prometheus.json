@@ -2,6 +2,18 @@
   "TCP": {
     "443": {
       "HTTPS": true
+    },
+    "8080": {
+      "HTTPS": true
+    },
+    "9090": {
+      "HTTPS": true
+    },
+    "9093": {
+      "HTTPS": true
+    },
+    "9100": {
+      "HTTPS": true
     }
   },
   "Web": {
@@ -9,6 +21,34 @@
       "Handlers": {
         "/": {
           "Proxy": "http://localhost:9090"
+        }
+      }
+    },
+    "${TS_CERT_DOMAIN}:8080": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://localhost:8080"
+        }
+      }
+    },
+    "${TS_CERT_DOMAIN}:9090": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://localhost:9090"
+        }
+      }
+    },
+    "${TS_CERT_DOMAIN}:9093": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://localhost:9093"
+        }
+      }
+    },
+    "${TS_CERT_DOMAIN}:9100": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://localhost:9100"
         }
       }
     }

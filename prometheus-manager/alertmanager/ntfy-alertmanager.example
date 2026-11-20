@@ -1,5 +1,5 @@
 http-address :8080
-base-url http://__PROMETHEUS_BASE_URL__
+base-url https://__PROMETHEUS_BASE_URL__:9093
 log-level debug
 alert-mode single
 user __DEFAULT_NTFY_USERNAME__
